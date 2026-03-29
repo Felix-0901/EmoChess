@@ -37,6 +37,11 @@ router.post('/register', async (req: Request, res: Response) => {
             res.status(409).json({ error: '此 Email 已被註冊' });
             return;
         }
+        if (err?.code === 'P2002') {
+            res.status(409).json({ error: '此 Email 已被註冊' });
+            return;
+        }
+        console.error('Register error:', err);
         res.status(500).json({ error: '註冊失敗' });
     }
 });
@@ -66,6 +71,7 @@ router.post('/login', async (req: Request, res: Response) => {
             res.status(401).json({ error: 'Email 或密碼不正確' });
             return;
         }
+        console.error('Login error:', err);
         res.status(500).json({ error: '登入失敗' });
     }
 });

@@ -9,8 +9,10 @@ import authRoutes from './routes/auth';
 import gameRoutes from './routes/games';
 import emotionRoutes from './routes/emotions';
 import statsRoutes from './routes/stats';
+import aiRoutes from './routes/ai';
 
 const app = express();
+app.disable('x-powered-by');
 
 // ─── Middleware ──────────────────────────────────────
 
@@ -181,19 +183,33 @@ const openapi = {
                 responses: { '200': { description: 'OK' }, '401': { description: 'Unauthorized' }, '404': { description: 'Not Found' } },
             },
         },
+        '/api/ai/chat-completions': {
+            post: {
+                summary: 'AI chat completions (proxy)',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: { 'application/json': { schema: { type: 'object' } } },
+                },
+                responses: { '200': { description: 'OK' }, '400': { description: 'Bad Request' }, '401': { description: 'Unauthorized' }, '429': { description: 'Too Many Requests' }, '502': { description: 'Bad Gateway' } },
+            },
+        },
     },
 };
 
-app.get('/openapi.json', (_req, res) => {
-    res.json(openapi);
-});
+if (env.NODE_ENV !== 'production') {
+    app.get('/openapi.json', (_req, res) => {
+        res.json(openapi);
+    });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi));
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi));
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/emotions', emotionRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/ai', aiRoutes);
 
 // ─── Error Handler ──────────────────────────────────
 

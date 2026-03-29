@@ -12,6 +12,12 @@ const envSchema = z
         JWT_EXPIRES_IN: z.string().default('15m'),
         JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
         CORS_ORIGIN: z.string().optional(),
+        AI_BASE_URL: z.string().default('https://api.openai.com'),
+        AI_API_KEY: z.string().optional(),
+        AI_MODEL: z.string().default('gpt-4o-mini'),
+        AI_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
+        AI_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
+        AI_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),
     })
     .superRefine((val, ctx) => {
         if (val.NODE_ENV === 'production') {
@@ -34,6 +40,13 @@ const envSchema = z
                     code: z.ZodIssueCode.custom,
                     message: 'JWT_REFRESH_SECRET 長度至少 32 字元',
                     path: ['JWT_REFRESH_SECRET'],
+                });
+            }
+            if (!val.AI_API_KEY || val.AI_API_KEY.trim().length === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'AI_API_KEY 在 production 必填',
+                    path: ['AI_API_KEY'],
                 });
             }
         }

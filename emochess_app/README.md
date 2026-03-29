@@ -32,19 +32,16 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
 flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
 ```
 
-3. 可選：啟用 AI
-
-若未提供 `AI_API_KEY`，App 仍可正常運行，AI 對話會自動回退到內建互動邏輯。
+ - iOS / Android 實體手機（手機與電腦同一個 Wi‑Fi）：
 
 ```bash
-flutter run \
-  --dart-define=API_BASE_URL=http://10.0.2.2:3000/api \
-  --dart-define=AI_BASE_URL=https://free.v36.cm \
-  --dart-define=AI_API_KEY=your-key
+flutter run --dart-define=API_BASE_URL=http://<你的電腦區網IP>:3000/api
 ```
+
+也可以在 App 內「設定」頁（Debug 模式才會顯示）直接修改「後端伺服器」，輸入 `http://<你的電腦區網IP>:3000`（未包含 `/api` 會自動補上）。
 
 ## 設定參數
 
 - API_BASE_URL：後端 API base URL（例如 `http://localhost:3000/api`）
-- AI_BASE_URL：AI 服務 base URL（預設 `https://free.v36.cm`）
-- AI_API_KEY：AI 服務金鑰（未設定即停用 AI）
+ 
+AI 金鑰採正式產品作法：放在後端環境變數（例如 Coolify / Secrets），App 端不保存任何 AI 金鑰。

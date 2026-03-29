@@ -7,13 +7,13 @@ import { prisma } from '../db/prisma';
 // ─── 驗證 Schema ────────────────────────────────────
 
 export const registerSchema = z.object({
-    email: z.string().email('Email 格式不正確'),
+    email: z.string().trim().toLowerCase().email('Email 格式不正確'),
     password: z.string().min(6, '密碼至少需要 6 個字元'),
-    displayName: z.string().min(1, '顯示名稱不能為空').max(50),
+    displayName: z.string().trim().min(1, '顯示名稱不能為空').max(50),
 });
 
 export const loginSchema = z.object({
-    email: z.string().email('Email 格式不正確'),
+    email: z.string().trim().toLowerCase().email('Email 格式不正確'),
     password: z.string().min(1, '請輸入密碼'),
 });
 
@@ -41,19 +41,24 @@ export async function registerUser(data: z.infer<typeof registerSchema>) {
 
     // 建立用戶
     const user = await prisma.user.create({
-        data: {
-            email: data.email,
-            passwordHash,
-            displayName: data.displayName,
-        },
-        select: {
-            id: true,
-            email: true,
-            displayName: true,
-            role: true,
-            createdAt: true,
-        },
-    });
+            data: {
+                email: data.email,
+                passwordHash,
+                displayName: data.displayName,
+            },
+            select: {
+                id: true,
+                email: true,
+                displayName: true,
+                role: true,
+                createdAt: true,
+            },
+        }).catch((err: any) => {
+            if (err?.code === 'P2002') {
+                throw new Error('EMAIL_EXISTS');
+            }
+            throw err;
+        });
 
     // 產生 tokens
     const accessToken = generateAccessToken({ userId: user.id, email: user.email });
