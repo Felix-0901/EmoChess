@@ -18,6 +18,12 @@ enum UserRole {
   THERAPIST
 }
 
+enum TitleRarity {
+  COMMON
+  RARE
+  EPIC
+}
+
 model User {
   id           String       @id @default(uuid())
   email        String       @unique
@@ -32,6 +38,8 @@ model User {
   updatedAt    DateTime     @updatedAt
 
   gameRecords  GameRecord[]
+  aiReports    AiReport[]
+  userTitles   UserTitle[]
 
   @@map("users")
 }
@@ -53,9 +61,42 @@ model GameRecord {
   moves           MoveRecord[]
   chatHistory     ChatRecord[]
   emotionLog      EmotionRecord[]
+  conversationRounds ConversationRoundRecord[]
+  aiReports       AiReport[]
 
   @@unique([userId, sessionId])
   @@map("game_records")
+}
+
+// ─── 稱號 / 獎勵 ─────────────────────────────────────
+
+model Title {
+  id            String      @id @default(uuid())
+  key           String      @unique
+  nameEn        String
+  nameZh        String
+  descriptionEn String
+  descriptionZh String
+  rarity        TitleRarity @default(COMMON)
+  createdAt     DateTime    @default(now())
+
+  userTitles    UserTitle[]
+
+  @@map("titles")
+}
+
+model UserTitle {
+  id         String   @id @default(uuid())
+  userId     String
+  titleId    String
+  unlockedAt DateTime @default(now())
+  equipped   Boolean  @default(false)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, titleId])
+  @@map("user_titles")
 }
 
 // ─── 棋步記錄 ───────────────────────────────────────
@@ -109,4 +150,46 @@ model EmotionRecord {
   gameRecord   GameRecord @relation(fields: [gameRecordId], references: [id], onDelete: Cascade)
 
   @@map("emotion_records")
+}
+
+// ─── 對話回合（AI 問句 → 選項 → 使用者選擇 → AI 回覆） ─────
+
+model ConversationRoundRecord {
+  id           String     @id @default(uuid())
+  gameRecordId String
+  roundId      String
+  timestamp    DateTime
+  moveNumber   Int?
+  emotion      String?
+  trigger      String?
+  intent       String?
+  angleKey     String?
+  promptVersion Int?
+  aiQuestion   String
+  choices      Json
+  selectedChoice String
+  aiReply      String
+  createdAt    DateTime   @default(now())
+
+  gameRecord   GameRecord @relation(fields: [gameRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([gameRecordId, roundId])
+  @@map("conversation_round_records")
+}
+
+// ─── AI 情緒報告 ─────────────────────────────────────
+
+model AiReport {
+  id           String   @id @default(uuid())
+  userId       String
+  gameRecordId String
+  language     String
+  reportJson   Json
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameRecord   GameRecord @relation(fields: [gameRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameRecordId, language])
+  @@map("ai_reports")
 }

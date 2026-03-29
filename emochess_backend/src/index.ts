@@ -10,6 +10,8 @@ import gameRoutes from './routes/games';
 import emotionRoutes from './routes/emotions';
 import statsRoutes from './routes/stats';
 import aiRoutes from './routes/ai';
+import reportRoutes from './routes/reports';
+import titleRoutes from './routes/titles';
 
 const app = express();
 app.disable('x-powered-by');
@@ -210,6 +212,8 @@ app.use('/api/games', gameRoutes);
 app.use('/api/emotions', emotionRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/titles', titleRoutes);
 
 // ─── Error Handler ──────────────────────────────────
 

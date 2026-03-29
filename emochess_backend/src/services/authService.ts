@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { getLevelProgress } from './statsService';
 import { prisma } from '../db/prisma';
+import { listUserTitles } from './titleService';
 
 // ─── 驗證 Schema ────────────────────────────────────
 
@@ -148,6 +149,7 @@ export async function getUserProfile(userId: string) {
     }
 
     const levelProgress = getLevelProgress(user.totalXp);
+    const titleState = await listUserTitles(userId);
 
     return {
         ...user,
@@ -155,5 +157,7 @@ export async function getUserProfile(userId: string) {
             ? Math.round((user.gamesWon / user.gamesPlayed) * 100)
             : 0,
         levelProgress,
+        equippedTitle: titleState.equippedTitle,
+        titles: titleState.titles,
     };
 }

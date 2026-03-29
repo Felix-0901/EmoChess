@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { calculateGameXp, calculateLevel } from './statsService';
 import { prisma } from '../db/prisma';
+import { evaluateAndSyncTitles } from './titleService';
 
 // ─── 驗證 Schema ────────────────────────────────────
 
@@ -33,6 +34,21 @@ const emotionRecordSchema = z.object({
     trigger: z.string().optional(),
 });
 
+const conversationRoundSchema = z.object({
+    roundId: z.string(),
+    aiQuestion: z.string(),
+    choices: z.array(z.string()).optional().default([]),
+    selectedChoice: z.string(),
+    aiReply: z.string(),
+    timestamp: z.string(),
+    moveNumber: z.number().optional(),
+    emotion: z.string().optional(),
+    trigger: z.string().optional(),
+    intent: z.string().optional(),
+    angleKey: z.string().optional(),
+    promptVersion: z.coerce.number().int().optional(),
+});
+
 export const createGameSchema = z.object({
     sessionId: z.string(),
     startTime: z.string(),
@@ -43,6 +59,7 @@ export const createGameSchema = z.object({
     moves: z.array(moveRecordSchema).optional().default([]),
     chatHistory: z.array(chatRecordSchema).optional().default([]),
     emotionLog: z.array(emotionRecordSchema).optional().default([]),
+    conversationRounds: z.array(conversationRoundSchema).optional().default([]),
 });
 
 // ─── 服務函式 ────────────────────────────────────────
@@ -95,11 +112,28 @@ export async function createGameRecord(
                     trigger: e.trigger,
                 })),
             },
+            conversationRounds: {
+                create: data.conversationRounds.map((r) => ({
+                    roundId: r.roundId,
+                    timestamp: new Date(r.timestamp),
+                    moveNumber: r.moveNumber,
+                    emotion: r.emotion,
+                    trigger: r.trigger,
+                    intent: r.intent,
+                    angleKey: r.angleKey,
+                    promptVersion: r.promptVersion,
+                    aiQuestion: r.aiQuestion,
+                    choices: r.choices,
+                    selectedChoice: r.selectedChoice,
+                    aiReply: r.aiReply,
+                })),
+            },
         },
         include: {
             moves: true,
             chatHistory: true,
             emotionLog: true,
+            conversationRounds: true,
         },
     });
 
@@ -128,6 +162,8 @@ export async function createGameRecord(
         });
     }
 
+    await evaluateAndSyncTitles(userId);
+
     return gameRecord;
 }
 
@@ -149,6 +185,7 @@ export async function getGameRecords(userId: string, page = 1, limit = 20) {
                         moves: true,
                         chatHistory: true,
                         emotionLog: true,
+                        conversationRounds: true,
                     },
                 },
             },
@@ -168,6 +205,7 @@ export async function getGameRecords(userId: string, page = 1, limit = 20) {
             movesCount: r._count.moves,
             chatCount: r._count.chatHistory,
             emotionCount: r._count.emotionLog,
+            roundsCount: r._count.conversationRounds,
         })),
         pagination: {
             page,
@@ -188,6 +226,7 @@ export async function getGameRecordById(userId: string, gameId: string) {
             moves: { orderBy: { moveNumber: 'asc' } },
             chatHistory: { orderBy: { timestamp: 'asc' } },
             emotionLog: { orderBy: { timestamp: 'asc' } },
+            conversationRounds: { orderBy: { timestamp: 'asc' } },
         },
     });
 
