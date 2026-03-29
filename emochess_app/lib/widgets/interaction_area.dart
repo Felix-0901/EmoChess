@@ -37,69 +37,88 @@ class InteractionArea extends StatelessWidget {
   Widget _buildEmotionInput(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      key: const ValueKey('emotion_input'),
-      children: [
-        Text(
-          l10n.howDoYouFeel,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return Consumer<EmotionProvider>(
+      builder: (context, emotionProvider, _) {
+        final current = emotionProvider.currentState;
+        const emotions = <EmotionLevel>[
+          EmotionLevel.happy,
+          EmotionLevel.neutral,
+          EmotionLevel.anxious,
+          EmotionLevel.frustrated,
+        ];
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          key: const ValueKey('emotion_input'),
           children: [
-            _ScaleEmotionButton(
-              icon: Icons.sentiment_satisfied_alt_rounded,
-              label: l10n.happy,
-              color: AppColors.success,
-              onTap: () => context.read<EmotionProvider>().setEmotion(
-                EmotionLevel.happy,
+            Text(
+              l10n.howDoYouFeel,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 16),
-            _ScaleEmotionButton(
-              icon: Icons.sentiment_neutral_rounded,
-              label: l10n.neutral,
-              color: AppColors.primary,
-              onTap: () => context.read<EmotionProvider>().setEmotion(
-                EmotionLevel.neutral,
+            const SizedBox(height: 8),
+            Text(
+              '${l10n.currentEmotion}${current.getLocalizedText(context)}',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: 16),
-            _ScaleEmotionButton(
-              icon: Icons.sentiment_dissatisfied_rounded,
-              label: l10n.frustrated,
-              color: AppColors.emotionFrustrated,
-              onTap: () => context.read<EmotionProvider>().setEmotion(
-                EmotionLevel.frustrated,
-              ),
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                for (final e in emotions)
+                  _SelectableEmotionButton(
+                    emotion: e,
+                    isSelected: current.level == e,
+                    onTap: () => emotionProvider.setEmotion(e),
+                  ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
 
-class _ScaleEmotionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
+class _SelectableEmotionButton extends StatelessWidget {
+  final EmotionLevel emotion;
+  final bool isSelected;
   final VoidCallback onTap;
 
-  const _ScaleEmotionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
+  const _SelectableEmotionButton({
+    required this.emotion,
+    required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final state = EmotionState(level: emotion, timestamp: DateTime.now());
+    final label = state.getLocalizedText(context);
+    final icon = state.icon;
+    Color color;
+    switch (emotion) {
+      case EmotionLevel.happy:
+        color = AppColors.emotionHappy;
+        break;
+      case EmotionLevel.neutral:
+        color = AppColors.emotionNeutral;
+        break;
+      case EmotionLevel.anxious:
+        color = AppColors.emotionAnxious;
+        break;
+      case EmotionLevel.frustrated:
+        color = AppColors.emotionFrustrated;
+        break;
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -109,11 +128,17 @@ class _ScaleEmotionButton extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: isSelected ? color : color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: color, width: 2),
             ),
-            child: Center(child: Icon(icon, color: color, size: 32)),
+            child: Center(
+              child: Icon(
+                icon,
+                color: isSelected ? Colors.white : color,
+                size: 32,
+              ),
+            ),
           ),
           const SizedBox(height: 8),
           Text(

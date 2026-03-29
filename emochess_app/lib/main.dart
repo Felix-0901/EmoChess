@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
+import 'config/app_config.dart';
 import 'theme/app_theme.dart';
 import 'providers/game_provider.dart';
 import 'providers/emotion_provider.dart';
@@ -23,6 +24,8 @@ import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await AppConfig.init();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -108,61 +111,54 @@ class _EmoChessRouterState extends State<_EmoChessRouter> {
       routes: [
         GoRoute(
           path: '/login',
-          pageBuilder: (context, state) => CustomTransitionPage(
+          pageBuilder: (context, state) => _pageWithDefaultTransition(
             key: state.pageKey,
             child: const LoginScreen(),
-            transitionsBuilder: _fadeTransition,
           ),
         ),
         GoRoute(
           path: '/',
-          pageBuilder: (context, state) => CustomTransitionPage(
+          pageBuilder: (context, state) => _pageWithDefaultTransition(
             key: state.pageKey,
             child: const HomeScreen(),
-            transitionsBuilder: _fadeTransition,
           ),
         ),
         GoRoute(
           path: '/emotion-checkin',
-          pageBuilder: (context, state) => CustomTransitionPage(
+          pageBuilder: (context, state) => _pageWithDefaultTransition(
             key: state.pageKey,
             child: const EmotionCheckinScreen(),
-            transitionsBuilder: _slideTransition,
           ),
         ),
         GoRoute(
           path: '/game',
-          pageBuilder: (context, state) => CustomTransitionPage(
+          pageBuilder: (context, state) => _pageWithDefaultTransition(
             key: state.pageKey,
             child: const GameScreen(),
-            transitionsBuilder: _fadeTransition,
           ),
         ),
         GoRoute(
           path: '/analysis',
-          pageBuilder: (context, state) => CustomTransitionPage(
+          pageBuilder: (context, state) => _pageWithDefaultTransition(
             key: state.pageKey,
             child: const AnalysisScreen(),
-            transitionsBuilder: _slideUpTransition,
           ),
         ),
         GoRoute(
           path: '/analysis/:id',
           pageBuilder: (context, state) {
             final recordId = state.pathParameters['id'] ?? '';
-            return CustomTransitionPage(
+            return _pageWithDefaultTransition(
               key: state.pageKey,
               child: AnalysisDetailScreen(recordId: recordId),
-              transitionsBuilder: _slideUpTransition,
             );
           },
         ),
         GoRoute(
           path: '/settings',
-          pageBuilder: (context, state) => CustomTransitionPage(
+          pageBuilder: (context, state) => _pageWithDefaultTransition(
             key: state.pageKey,
             child: const SettingsScreen(),
-            transitionsBuilder: _slideTransition,
           ),
         ),
         GoRoute(
@@ -170,14 +166,13 @@ class _EmoChessRouterState extends State<_EmoChessRouter> {
           pageBuilder: (context, state) {
             final errorMsg =
                 state.uri.queryParameters['msg'] ?? 'Unknown AI Error';
-            return CustomTransitionPage(
+            return _pageWithDefaultTransition(
               key: state.pageKey,
               child: AiErrorScreen(
                 errorMessage: errorMsg,
                 onRetry: () => context.go('/game'),
                 onExit: () => context.go('/'),
               ),
-              transitionsBuilder: _fadeTransition,
             );
           },
         ),
@@ -210,44 +205,40 @@ class _EmoChessRouterState extends State<_EmoChessRouter> {
 
 // ─── Transition Animations ──────────────────────────
 
-Widget _fadeTransition(
+CustomTransitionPage<void> _pageWithDefaultTransition({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionsBuilder: _defaultTransition,
+  );
+}
+
+Widget _defaultTransition(
   BuildContext context,
   Animation<double> animation,
   Animation<double> secondaryAnimation,
   Widget child,
 ) {
+  final disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+  if (disableAnimations) return child;
+
+  final curved = CurvedAnimation(
+    parent: animation,
+    curve: Curves.easeOutCubic,
+    reverseCurve: Curves.easeInCubic,
+  );
+
   return FadeTransition(
-    opacity: CurveTween(curve: Curves.easeOut).animate(animation),
-    child: child,
-  );
-}
-
-Widget _slideTransition(
-  BuildContext context,
-  Animation<double> animation,
-  Animation<double> secondaryAnimation,
-  Widget child,
-) {
-  return SlideTransition(
-    position: Tween<Offset>(
-      begin: const Offset(1.0, 0.0),
-      end: Offset.zero,
-    ).chain(CurveTween(curve: Curves.easeOut)).animate(animation),
-    child: child,
-  );
-}
-
-Widget _slideUpTransition(
-  BuildContext context,
-  Animation<double> animation,
-  Animation<double> secondaryAnimation,
-  Widget child,
-) {
-  return SlideTransition(
-    position: Tween<Offset>(
-      begin: const Offset(0.0, 1.0),
-      end: Offset.zero,
-    ).chain(CurveTween(curve: Curves.easeOut)).animate(animation),
-    child: child,
+    opacity: curved,
+    child: SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0.06, 0.0),
+        end: Offset.zero,
+      ).animate(curved),
+      child: child,
+    ),
   );
 }

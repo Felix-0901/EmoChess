@@ -29,6 +29,7 @@ class AppColors {
   // Emotion colors (soft, non-aggressive)
   static const Color emotionHappy = Color(0xFF34D399); // Soft Green
   static const Color emotionNeutral = Color(0xFFFCD34D); // Soft Yellow
+  static const Color emotionAnxious = Color(0xFFF472B6); // Soft Pink
   static const Color emotionFrustrated = Color(
     0xFFFB923C,
   ); // Soft Orange (not red!)

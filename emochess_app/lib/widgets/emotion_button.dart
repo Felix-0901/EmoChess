@@ -25,6 +25,8 @@ class EmotionButton extends StatelessWidget {
         return AppColors.emotionHappy;
       case EmotionLevel.neutral:
         return AppColors.emotionNeutral;
+      case EmotionLevel.anxious:
+        return AppColors.emotionAnxious;
       case EmotionLevel.frustrated:
         return AppColors.emotionFrustrated;
     }
@@ -36,6 +38,8 @@ class EmotionButton extends StatelessWidget {
         return Icons.sentiment_satisfied_alt_rounded;
       case EmotionLevel.neutral:
         return Icons.sentiment_neutral_rounded;
+      case EmotionLevel.anxious:
+        return Icons.sentiment_very_dissatisfied_rounded;
       case EmotionLevel.frustrated:
         return Icons.sentiment_dissatisfied_rounded;
     }
@@ -47,6 +51,8 @@ class EmotionButton extends StatelessWidget {
         return l10n.happy;
       case EmotionLevel.neutral:
         return l10n.neutral;
+      case EmotionLevel.anxious:
+        return l10n.anxious;
       case EmotionLevel.frustrated:
         return l10n.frustrated;
     }
@@ -58,37 +64,43 @@ class EmotionButton extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: isSelected
-            ? AppTheme.clayDecoration(
-                color: _color,
-                borderRadius: 20,
-                isPressed: true,
-              )
-            : BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border, width: 3),
+      child: SizedBox.square(
+        dimension: 112,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: isSelected
+              ? AppTheme.clayDecoration(
+                  color: _color,
+                  borderRadius: 20,
+                  isPressed: true,
+                )
+              : BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.border, width: 3),
+                ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _icon,
+                size: isSelected ? 44 : 38,
+                color: isSelected ? Colors.white : _color,
               ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _icon,
-              size: isSelected ? 48 : 40,
-              color: isSelected ? Colors.white : _color,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _getLabel(l10n),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: isSelected ? Colors.white : AppColors.textPrimary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              const SizedBox(height: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _getLabel(l10n),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -105,24 +117,24 @@ class EmotionSelector extends StatelessWidget {
       builder: (context, emotionProvider, _) {
         final currentEmotion = emotionProvider.currentState.level;
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        const emotions = <EmotionLevel>[
+          EmotionLevel.happy,
+          EmotionLevel.neutral,
+          EmotionLevel.anxious,
+          EmotionLevel.frustrated,
+        ];
+
+        return Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
+          runSpacing: 16,
           children: [
-            EmotionButton(
-              emotion: EmotionLevel.happy,
-              isSelected: currentEmotion == EmotionLevel.happy,
-              onTap: () => emotionProvider.setEmotion(EmotionLevel.happy),
-            ),
-            EmotionButton(
-              emotion: EmotionLevel.neutral,
-              isSelected: currentEmotion == EmotionLevel.neutral,
-              onTap: () => emotionProvider.setEmotion(EmotionLevel.neutral),
-            ),
-            EmotionButton(
-              emotion: EmotionLevel.frustrated,
-              isSelected: currentEmotion == EmotionLevel.frustrated,
-              onTap: () => emotionProvider.setEmotion(EmotionLevel.frustrated),
-            ),
+            for (final e in emotions)
+              EmotionButton(
+                emotion: e,
+                isSelected: currentEmotion == e,
+                onTap: () => emotionProvider.setEmotion(e),
+              ),
           ],
         );
       },
@@ -151,6 +163,10 @@ class EmotionIndicator extends StatelessWidget {
           case EmotionLevel.neutral:
             color = AppColors.emotionNeutral;
             icon = Icons.sentiment_neutral_rounded;
+            break;
+          case EmotionLevel.anxious:
+            color = AppColors.emotionAnxious;
+            icon = Icons.sentiment_very_dissatisfied_rounded;
             break;
           case EmotionLevel.frustrated:
             color = AppColors.emotionFrustrated;

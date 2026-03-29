@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
-enum EmotionLevel { happy, neutral, frustrated }
+enum EmotionLevel { happy, neutral, anxious, frustrated }
 
 class EmotionState {
   final EmotionLevel level;
@@ -35,6 +35,13 @@ class EmotionState {
     source: EmotionSource.manual,
   );
 
+  factory EmotionState.anxious({String? note}) => EmotionState(
+    level: EmotionLevel.anxious,
+    timestamp: DateTime.now(),
+    note: note,
+    source: EmotionSource.manual,
+  );
+
   /// Create a frustrated emotion state
   factory EmotionState.frustrated({String? note}) => EmotionState(
     level: EmotionLevel.frustrated,
@@ -50,6 +57,8 @@ class EmotionState {
         return 'Happy';
       case EmotionLevel.neutral:
         return 'Calm';
+      case EmotionLevel.anxious:
+        return 'Anxious';
       case EmotionLevel.frustrated:
         return 'Frustrated';
     }
@@ -63,6 +72,8 @@ class EmotionState {
           return l10n.happy;
         case EmotionLevel.neutral:
           return l10n.neutral;
+        case EmotionLevel.anxious:
+          return l10n.anxious;
         case EmotionLevel.frustrated:
           return l10n.frustrated;
       }
@@ -79,6 +90,8 @@ class EmotionState {
         return Icons.sentiment_satisfied_alt_rounded;
       case EmotionLevel.neutral:
         return Icons.sentiment_neutral_rounded;
+      case EmotionLevel.anxious:
+        return Icons.sentiment_very_dissatisfied_rounded;
       case EmotionLevel.frustrated:
         return Icons.sentiment_dissatisfied_rounded;
     }
@@ -91,6 +104,8 @@ class EmotionState {
         return 'I feel good!';
       case EmotionLevel.neutral:
         return 'I\'m okay';
+      case EmotionLevel.anxious:
+        return 'I feel nervous';
       case EmotionLevel.frustrated:
         return 'I feel frustrated';
     }
@@ -103,6 +118,8 @@ class EmotionState {
         return '我感覺很好！';
       case EmotionLevel.neutral:
         return '我還可以';
+      case EmotionLevel.anxious:
+        return '我有點緊張';
       case EmotionLevel.frustrated:
         return '我有點挫折';
     }
@@ -129,8 +146,28 @@ class EmotionState {
     'source': source.name,
   };
 
+  static EmotionLevel parseLevel(String raw) {
+    final normalized = raw.trim().toLowerCase();
+    switch (normalized) {
+      case 'happy':
+        return EmotionLevel.happy;
+      case 'excited':
+        return EmotionLevel.happy;
+      case 'neutral':
+        return EmotionLevel.neutral;
+      case 'sad':
+        return EmotionLevel.anxious;
+      case 'anxious':
+        return EmotionLevel.anxious;
+      case 'frustrated':
+        return EmotionLevel.frustrated;
+      default:
+        return EmotionLevel.neutral;
+    }
+  }
+
   factory EmotionState.fromJson(Map<String, dynamic> json) => EmotionState(
-    level: EmotionLevel.values.byName(json['level'] as String),
+    level: parseLevel(json['level'] as String? ?? ''),
     timestamp: DateTime.parse(json['timestamp'] as String),
     note: json['note'] as String?,
     source: EmotionSource.values.byName(json['source'] as String),

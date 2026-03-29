@@ -34,7 +34,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         title: Text(l10n.get('emotionAnalysis')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/'),
+          onPressed: () {
+            if (GoRouter.of(context).canPop()) {
+              context.pop();
+              return;
+            }
+            context.go('/');
+          },
         ),
       ),
       body: SafeArea(
@@ -85,7 +91,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
-            onPressed: () => context.go('/emotion-checkin'),
+            onPressed: () => context.push('/emotion-checkin'),
             icon: const Icon(Icons.play_arrow_rounded),
             label: Text(l10n.playChess),
           ),
@@ -118,7 +124,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               return _GameHistoryCard(
                 game: game,
                 l10n: l10n,
-                onTap: () => context.go('/analysis/${game.sessionId}'),
+                onTap: () => context.push('/analysis/${game.sessionId}'),
               );
             },
           ),

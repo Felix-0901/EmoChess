@@ -57,8 +57,10 @@ class AppLocalizations {
       // Emotions
       'happy': 'Happy',
       'neutral': 'Calm',
+      'anxious': 'Nervous',
       'frustrated': 'Frustrated',
       'howDoYouFeel': 'How do you feel?',
+      'currentEmotion': 'Current: ',
       'chatHint': 'Type a short reply...',
 
       // Game Screen
@@ -95,6 +97,12 @@ class AppLocalizations {
       'game': 'Game',
       'showMoveHints': 'Show Move Hints',
       'showMoveHintsDesc': 'Highlight legal moves',
+      'apiServer': 'API Server',
+      'apiServerDesc': 'Set backend API base URL (auto adds /api if missing).',
+      'apiServerHint': 'http://192.168.1.10:3000',
+      'save': 'Save',
+      'reset': 'Reset',
+      'saved': 'Saved.',
       'version': 'Version',
       'aboutDesc': 'Emotion-focused chess learning for ASD children',
       'help': 'Help',
@@ -344,8 +352,10 @@ class AppLocalizations {
       // Emotions
       'happy': '開心',
       'neutral': '平靜',
+      'anxious': '緊張',
       'frustrated': '沮喪',
       'howDoYouFeel': '你感覺如何？',
+      'currentEmotion': '目前選擇：',
       'chatHint': '輸入簡短回覆…',
 
       // Game Screen
@@ -381,6 +391,12 @@ class AppLocalizations {
       'game': '遊戲',
       'showMoveHints': '顯示走法提示',
       'showMoveHintsDesc': '標記合法走法',
+      'apiServer': '後端伺服器',
+      'apiServerDesc': '設定後端 API Base URL（未包含 /api 會自動補上）。',
+      'apiServerHint': 'http://192.168.1.10:3000',
+      'save': '儲存',
+      'reset': '重設',
+      'saved': '已更新。',
       'version': '版本',
       'aboutDesc': '專為自閉症兒童設計的情緒導向西洋棋學習',
       'help': '幫助',
@@ -561,10 +577,14 @@ class AppLocalizations {
   };
 
   String get(String key) {
-    final langCode = locale.languageCode;
-    return _localizedStrings[langCode]?[key] ??
-        _localizedStrings['en']?[key] ??
-        key;
+    final langCode = locale.languageCode.split(RegExp(r'[-_]')).first;
+    final value =
+        _localizedStrings[langCode]?[key] ?? _localizedStrings['en']?[key];
+    if (value != null) return value;
+    if (key == 'anxious') {
+      return langCode == 'zh' ? '緊張' : 'Nervous';
+    }
+    return key;
   }
 
   // Convenience getters
@@ -580,8 +600,10 @@ class AppLocalizations {
   String get letsPlay => get('letsPlay');
   String get happy => get('happy');
   String get neutral => get('neutral');
+  String get anxious => get('anxious');
   String get frustrated => get('frustrated');
   String get howDoYouFeel => get('howDoYouFeel');
+  String get currentEmotion => get('currentEmotion');
   String get emoChess => get('emoChess');
   String get undoMove => get('undoMove');
   String get takeABreath => get('takeABreath');

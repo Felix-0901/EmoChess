@@ -131,7 +131,7 @@ class _GameScreenState extends State<GameScreen> {
           // Analysis button
           IconButton(
             icon: const Icon(Icons.analytics_outlined),
-            onPressed: () => context.go('/analysis'),
+            onPressed: () => context.push('/analysis'),
             tooltip: l10n.get('emotionAnalysis'),
           ),
         ],

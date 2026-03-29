@@ -84,7 +84,7 @@ class HomeScreen extends StatelessWidget {
                 label: l10n.playChess,
                 icon: Icons.play_arrow_rounded,
                 color: AppColors.primary,
-                onTap: () => context.go('/emotion-checkin'),
+                onTap: () => context.push('/emotion-checkin'),
               ),
 
               const SizedBox(height: 16),
@@ -94,7 +94,7 @@ class HomeScreen extends StatelessWidget {
                 label: l10n.get('emotionAnalysis'),
                 icon: Icons.analytics_outlined,
                 color: AppColors.success,
-                onTap: () => context.go('/analysis'),
+                onTap: () => context.push('/analysis'),
               ),
 
               const SizedBox(height: 16),
@@ -105,7 +105,7 @@ class HomeScreen extends StatelessWidget {
                 icon: Icons.settings_outlined,
                 color: AppColors.textSecondary,
                 isOutlined: true,
-                onTap: () => context.go('/settings'),
+                onTap: () => context.push('/settings'),
               ),
 
               const SizedBox(height: 32),

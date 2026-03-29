@@ -35,7 +35,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(l10n.settings),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/'),
+          onPressed: () {
+            if (GoRouter.of(context).canPop()) {
+              context.pop();
+              return;
+            }
+            context.go('/');
+          },
         ),
       ),
       body: SafeArea(

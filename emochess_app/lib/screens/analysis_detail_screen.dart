@@ -22,7 +22,13 @@ class AnalysisDetailScreen extends StatelessWidget {
         title: Text(l10n.get('emotionAnalysis')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/analysis'),
+          onPressed: () {
+            if (GoRouter.of(context).canPop()) {
+              context.pop();
+              return;
+            }
+            context.go('/analysis');
+          },
         ),
       ),
       body: SafeArea(

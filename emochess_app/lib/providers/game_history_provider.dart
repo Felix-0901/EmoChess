@@ -104,12 +104,7 @@ class GameHistoryProvider extends ChangeNotifier {
   }
 
   EmotionState _emotionStateFromJson(Map<String, dynamic> json) {
-    return EmotionState(
-      level: EmotionLevel.values.firstWhere((l) => l.name == json['level']),
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      note: json['note'] as String?,
-      source: EmotionSource.values.firstWhere((s) => s.name == json['source']),
-    );
+    return EmotionState.fromJson(json);
   }
 
   GameMove _gameMoveFromJson(Map<String, dynamic> json) {

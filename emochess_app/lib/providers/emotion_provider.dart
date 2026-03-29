@@ -76,8 +76,7 @@ class EmotionProvider extends ChangeNotifier {
     );
     _history.add(_currentState);
 
-    // Trigger different interactions based on emotion
-    if (level == EmotionLevel.frustrated) {
+    if (level == EmotionLevel.frustrated || level == EmotionLevel.anxious) {
       _showBreathingPrompt = true;
     } else if (level == EmotionLevel.happy) {
       _showBreathingPrompt = false;
@@ -102,7 +101,7 @@ class EmotionProvider extends ChangeNotifier {
     );
     _history.add(_currentState);
 
-    if (level == EmotionLevel.frustrated) {
+    if (level == EmotionLevel.frustrated || level == EmotionLevel.anxious) {
       _showBreathingPrompt = true;
     }
 

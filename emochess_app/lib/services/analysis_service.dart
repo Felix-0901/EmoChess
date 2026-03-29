@@ -59,6 +59,9 @@ class AnalysisService {
         case 'happy':
           _currentEmotion = EmotionLevel.happy;
           break;
+        case 'anxious':
+          _currentEmotion = EmotionLevel.anxious;
+          break;
         case 'frustrated':
           _currentEmotion = EmotionLevel.frustrated;
           break;
@@ -115,7 +118,8 @@ class AnalysisService {
   }
 
   AiInteractionIntent _chooseIntent() {
-    if (_currentEmotion == EmotionLevel.frustrated) {
+    if (_currentEmotion == EmotionLevel.frustrated ||
+        _currentEmotion == EmotionLevel.anxious) {
       final roll = _random.nextDouble();
       if (roll < 0.4) return AiInteractionIntent.encourage;
       if (roll < 0.9) return AiInteractionIntent.chat;
@@ -155,9 +159,10 @@ class AnalysisService {
     }
 
     // Emotional check-in for frustrated players
-    if (_currentEmotion == EmotionLevel.frustrated) {
+    if (_currentEmotion == EmotionLevel.frustrated ||
+        _currentEmotion == EmotionLevel.anxious) {
       if (!_wasRecentTrigger('emotional')) {
-        return createEmotionCheckin(EmotionLevel.frustrated);
+        return createEmotionCheckin(_currentEmotion);
       }
     }
 
@@ -248,7 +253,8 @@ class AnalysisService {
     _currentEmotion = emotion;
 
     // Choose response based on the new emotion
-    if (emotion == EmotionLevel.frustrated) {
+    if (emotion == EmotionLevel.frustrated ||
+        emotion == EmotionLevel.anxious) {
       return CompanionInteraction.multiChoice(
         messageKey: 'aiFallbackFrustrated',
         trigger: 'emotional_frustrated',

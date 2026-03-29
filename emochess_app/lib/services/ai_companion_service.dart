@@ -9,6 +9,8 @@ import '../models/chat_message.dart';
 import '../models/companion_interaction.dart';
 import '../models/conversation_round.dart';
 import '../models/emotion_state.dart';
+import '../services/auth_service.dart';
+import '../storage/token_storage.dart';
 
 enum AiInteractionIntent { chat, encourage, teach }
 
@@ -23,7 +25,7 @@ class AiCompanionService {
   static const Duration _timeout = Duration(seconds: 20);
 
   final String _apiBaseUrl;
-  final String _apiKey;
+  final TokenStorage _tokenStorage;
   final http.Client _client;
   final Random _random = Random();
   List<String> _recentAvoidLabels = const [];
@@ -31,12 +33,15 @@ class AiCompanionService {
   final List<String> _recentChoiceSignatures = [];
   final List<String> _recentAngleKeys = [];
 
-  AiCompanionService({String? apiBaseUrl, String? apiKey, http.Client? client})
-    : _apiBaseUrl = _normalizeBaseUrl(apiBaseUrl ?? AppConfig.aiBaseUrl),
-      _apiKey = (apiKey ?? AppConfig.aiApiKey).trim(),
-      _client = client ?? http.Client();
+  AiCompanionService({
+    String? apiBaseUrl,
+    TokenStorage? tokenStorage,
+    http.Client? client,
+  }) : _apiBaseUrl = _normalizeBaseUrl(apiBaseUrl ?? AppConfig.apiBaseUrl),
+       _tokenStorage = tokenStorage ?? SecureTokenStorage(),
+       _client = client ?? http.Client();
 
-  String get _apiEndpoint => '$_apiBaseUrl/v1/chat/completions';
+  String get _apiEndpoint => '$_apiBaseUrl/ai/chat-completions';
 
   /// Generate a dynamic interaction based on game context and emotion
   /// Per user spec: full context with pre/post FEN, move SAN
@@ -62,9 +67,8 @@ class AiCompanionService {
     List<ConversationRound>? recentRounds,
     AiInteractionIntent? intentHint,
   }) async {
-    if (_apiKey.isEmpty) {
-      return null;
-    }
+    final token = await _tokenStorage.readAccessToken();
+    if (token == null || token.trim().isEmpty) return null;
 
     final context = AiTurnContext(
       preFen: preFen,
@@ -129,9 +133,9 @@ class AiCompanionService {
         return jsonEncode(body);
       }
 
-      int attempt = 0;
-      const int maxAttempts = 4;
       var useJsonResponseFormat = true;
+      var authToken = token.trim();
+      var hasRetriedAuth = false;
       while (true) {
         final requestBody = buildRequestBody(useJsonResponseFormat);
         final response = await _client
@@ -139,22 +143,33 @@ class AiCompanionService {
               Uri.parse(_apiEndpoint),
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer $_apiKey',
+                'Authorization': 'Bearer $authToken',
               },
               body: requestBody,
             )
             .timeout(_timeout);
 
-        if (response.statusCode == 429) {
-          if (attempt >= maxAttempts - 1) {
-            break;
-          }
-          final baseDelay = min(60000, 2000 * (1 << min(attempt, 5)));
-          final jitter = _random.nextInt(600);
-          final waitMs = baseDelay + jitter;
-          await Future.delayed(Duration(milliseconds: waitMs));
-          attempt++;
+        if (response.statusCode == 401 && !hasRetriedAuth) {
+          hasRetriedAuth = true;
+          final auth = AuthService(
+            baseUrl: _apiBaseUrl,
+            tokenStorage: _tokenStorage,
+            client: _client,
+          );
+          final refreshed = await auth.refreshToken();
+          if (!refreshed) return null;
+          final newToken = await _tokenStorage.readAccessToken();
+          if (newToken == null || newToken.trim().isEmpty) return null;
+          authToken = newToken.trim();
           continue;
+        }
+
+        if (response.statusCode == 429) {
+          return null;
+        }
+
+        if (response.statusCode == 501 || response.statusCode == 503) {
+          return null;
         }
 
         if (response.statusCode == 200) {
@@ -246,9 +261,6 @@ class AiCompanionService {
         }
         return fallback;
       }
-      final fallback = _buildPieceSafeFallback(context, intent: intent);
-      _rememberInteraction(fallback);
-      return fallback;
     } catch (e) {
       if (e is AiServiceException) rethrow;
       throw AiServiceException('Connection Failed: $e');
@@ -488,7 +500,8 @@ Output MUST be strict JSON:
   }
 
   AiInteractionIntent _decideIntent(AiTurnContext context) {
-    if (context.emotionLevel == EmotionLevel.frustrated) {
+    if (context.emotionLevel == EmotionLevel.frustrated ||
+        context.emotionLevel == EmotionLevel.anxious) {
       final roll = _random.nextDouble();
       if (roll < 0.4) return AiInteractionIntent.encourage;
       if (roll < 0.9) return AiInteractionIntent.chat;
@@ -2211,6 +2224,8 @@ Output MUST be strict JSON:
           return '開心';
         case EmotionLevel.neutral:
           return '平靜';
+        case EmotionLevel.anxious:
+          return '緊張';
         case EmotionLevel.frustrated:
           return '有點挫折';
       }
@@ -2221,6 +2236,8 @@ Output MUST be strict JSON:
         return 'happy';
       case EmotionLevel.neutral:
         return 'calm';
+      case EmotionLevel.anxious:
+        return 'anxious';
       case EmotionLevel.frustrated:
         return 'frustrated';
     }
@@ -2327,7 +2344,7 @@ Output MUST be strict JSON:
 
   static String _normalizeBaseUrl(String input) {
     final trimmed = input.trim();
-    if (trimmed.isEmpty) return AppConfig.aiBaseUrl;
+    if (trimmed.isEmpty) return AppConfig.apiBaseUrl;
     var normalized = trimmed.replaceAll(RegExp(r'/+$'), '');
     if (normalized.endsWith('/v1')) {
       normalized = normalized.substring(0, normalized.length - 3);

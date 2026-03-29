@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
@@ -7,20 +8,22 @@ import '../storage/token_storage.dart';
 class AuthService {
   static const Duration _timeout = Duration(seconds: 12);
 
-  final String _baseUrl;
+  final String? _baseUrlOverride;
   final TokenStorage _tokenStorage;
   final http.Client _client;
 
   Future<bool>? _refreshInFlight;
 
+  String get _effectiveBaseUrl {
+    final raw = (_baseUrlOverride ?? AppConfig.apiBaseUrl);
+    return raw.replaceAll(RegExp(r'/+$'), '');
+  }
+
   AuthService({
     String? baseUrl,
     TokenStorage? tokenStorage,
     http.Client? client,
-  })  : _baseUrl = (baseUrl ?? AppConfig.apiBaseUrl).replaceAll(
-          RegExp(r'/+$'),
-          '',
-        ),
+  })  : _baseUrlOverride = (baseUrl?.trim().isEmpty ?? true) ? null : baseUrl!.trim(),
         _tokenStorage = tokenStorage ?? SecureTokenStorage(),
         _client = client ?? http.Client();
 
@@ -65,7 +68,7 @@ class AuthService {
     try {
       final response = await _client
           .post(
-        Uri.parse('$_baseUrl/auth/register'),
+        Uri.parse('$_effectiveBaseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -75,12 +78,21 @@ class AuthService {
       )
           .timeout(_timeout);
 
+      if (response.statusCode == 404) {
+        return AuthResult.error('找不到註冊 API，請確認 API_BASE_URL 是否包含 /api');
+      }
+
       final data = _tryDecodeMap(response.body);
 
       if (response.statusCode == 201) {
+        final access = (data?['accessToken'] as String?)?.trim() ?? '';
+        final refresh = (data?['refreshToken'] as String?)?.trim() ?? '';
+        if (access.isEmpty || refresh.isEmpty) {
+          return AuthResult.error('註冊成功但 Token 回傳格式不正確');
+        }
         await _saveTokens(
-          (data?['accessToken'] as String?) ?? '',
-          (data?['refreshToken'] as String?) ?? '',
+          access,
+          refresh,
         );
         final user = (data?['user'] as Map?)?.cast<String, dynamic>();
         if (user != null) {
@@ -92,7 +104,8 @@ class AuthService {
 
       return AuthResult.error(_extractErrorMessage(data) ?? '註冊失敗');
     } catch (e) {
-      return AuthResult.error('無法連接到伺服器：${e.toString()}');
+      final detail = kDebugMode ? '：${e.toString()}' : '';
+      return AuthResult.error('無法連接到伺服器$detail');
     }
   }
 
@@ -104,18 +117,27 @@ class AuthService {
     try {
       final response = await _client
           .post(
-        Uri.parse('$_baseUrl/auth/login'),
+        Uri.parse('$_effectiveBaseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       )
           .timeout(_timeout);
 
+      if (response.statusCode == 404) {
+        return AuthResult.error('找不到登入 API，請確認 API_BASE_URL 是否包含 /api');
+      }
+
       final data = _tryDecodeMap(response.body);
 
       if (response.statusCode == 200) {
+        final access = (data?['accessToken'] as String?)?.trim() ?? '';
+        final refresh = (data?['refreshToken'] as String?)?.trim() ?? '';
+        if (access.isEmpty || refresh.isEmpty) {
+          return AuthResult.error('登入成功但 Token 回傳格式不正確');
+        }
         await _saveTokens(
-          (data?['accessToken'] as String?) ?? '',
-          (data?['refreshToken'] as String?) ?? '',
+          access,
+          refresh,
         );
         final user = (data?['user'] as Map?)?.cast<String, dynamic>();
         if (user != null) {
@@ -127,7 +149,8 @@ class AuthService {
 
       return AuthResult.error(_extractErrorMessage(data) ?? '登入失敗');
     } catch (e) {
-      return AuthResult.error('無法連接到伺服器：${e.toString()}');
+      final detail = kDebugMode ? '：${e.toString()}' : '';
+      return AuthResult.error('無法連接到伺服器$detail');
     }
   }
 
@@ -139,7 +162,7 @@ class AuthService {
 
       final first = await _client
           .get(
-            Uri.parse('$_baseUrl/stats/profile'),
+            Uri.parse('$_effectiveBaseUrl/stats/profile'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -165,7 +188,7 @@ class AuthService {
 
       final second = await _client
           .get(
-            Uri.parse('$_baseUrl/stats/profile'),
+            Uri.parse('$_effectiveBaseUrl/stats/profile'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $newToken',
@@ -207,7 +230,7 @@ class AuthService {
 
       final response = await _client
           .post(
-            Uri.parse('$_baseUrl/auth/refresh'),
+            Uri.parse('$_effectiveBaseUrl/auth/refresh'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'refreshToken': refresh}),
           )
@@ -245,6 +268,16 @@ Map<String, dynamic>? _tryDecodeMap(String body) {
 String? _extractErrorMessage(Map<String, dynamic>? data) {
   final error = data?['error'];
   if (error is String && error.trim().isNotEmpty) return error.trim();
+  final message = data?['message'];
+  if (message is String && message.trim().isNotEmpty) return message.trim();
+  final details = data?['details'];
+  if (details is List && details.isNotEmpty) {
+    final first = details.first;
+    if (first is Map) {
+      final msg = first['message'];
+      if (msg is String && msg.trim().isNotEmpty) return msg.trim();
+    }
+  }
   return null;
 }
 

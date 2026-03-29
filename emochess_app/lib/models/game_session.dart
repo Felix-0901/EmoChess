@@ -64,7 +64,11 @@ class GameSession {
 
   /// Check if there was a frustration event
   bool get hadFrustrationEvent =>
-      emotionHistory.any((e) => e.level == EmotionLevel.frustrated) ||
+      emotionHistory.any(
+        (e) =>
+            e.level == EmotionLevel.frustrated ||
+            e.level == EmotionLevel.anxious,
+      ) ||
       behaviorEvents.isNotEmpty;
 
   /// Get average time per move
