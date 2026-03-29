@@ -14,6 +14,7 @@ yarn-error.log*
 # IDE
 .idea/
 .vscode/
+.agent/
 
 # Flutter / Dart
 .dart_tool/
@@ -44,3 +45,6 @@ dist/
 
 # Docker
 **/*.local.yml
+
+# Local resources (do not version)
+emochess_app/Infinite Chess Handbook Chinese.pdf
