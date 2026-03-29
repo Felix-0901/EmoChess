@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import { prisma } from './db/prisma';
@@ -13,7 +14,11 @@ const app = express();
 
 // ─── Middleware ──────────────────────────────────────
 
-app.use(helmet());
+app.use(
+    helmet({
+        contentSecurityPolicy: false,
+    })
+);
 const corsOrigins = env.CORS_ORIGIN
     ? env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
     : undefined;
@@ -27,7 +32,7 @@ app.use(express.json({ limit: '10mb' })); // 遊戲記錄可能較大
 
 // ─── Routes ─────────────────────────────────────────
 
-app.get('/api/health', async (_req, res) => {
+const healthHandler: express.RequestHandler = async (_req, res) => {
     try {
         await prisma.$queryRaw`SELECT 1`;
         res.json({
@@ -44,7 +49,146 @@ app.get('/api/health', async (_req, res) => {
             timestamp: new Date().toISOString(),
         });
     }
+};
+
+app.get('/', (_req, res) => {
+    res.json({
+        service: 'EmoChess Backend API',
+        status: 'ok',
+        health: '/api/health',
+    });
 });
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
+
+const openapi = {
+    openapi: '3.0.3',
+    info: {
+        title: 'EmoChess Backend API',
+        version: '1.0.0',
+    },
+    servers: [{ url: '/' }],
+    components: {
+        securitySchemes: {
+            bearerAuth: {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT',
+            },
+        },
+    },
+    paths: {
+        '/health': {
+            get: {
+                summary: 'Health check',
+                responses: { '200': { description: 'OK' }, '503': { description: 'Degraded' } },
+            },
+        },
+        '/api/health': {
+            get: {
+                summary: 'Health check',
+                responses: { '200': { description: 'OK' }, '503': { description: 'Degraded' } },
+            },
+        },
+        '/api/auth/register': {
+            post: {
+                summary: 'Register',
+                requestBody: {
+                    required: true,
+                    content: { 'application/json': { schema: { type: 'object' } } },
+                },
+                responses: {
+                    '201': { description: 'Created' },
+                    '400': { description: 'Bad Request' },
+                    '409': { description: 'Conflict' },
+                },
+            },
+        },
+        '/api/auth/login': {
+            post: {
+                summary: 'Login',
+                requestBody: {
+                    required: true,
+                    content: { 'application/json': { schema: { type: 'object' } } },
+                },
+                responses: { '200': { description: 'OK' }, '400': { description: 'Bad Request' }, '401': { description: 'Unauthorized' } },
+            },
+        },
+        '/api/auth/refresh': {
+            post: {
+                summary: 'Refresh token',
+                requestBody: {
+                    required: true,
+                    content: { 'application/json': { schema: { type: 'object' } } },
+                },
+                responses: { '200': { description: 'OK' }, '400': { description: 'Bad Request' }, '401': { description: 'Unauthorized' } },
+            },
+        },
+        '/api/auth/me': {
+            get: {
+                summary: 'Get current user',
+                security: [{ bearerAuth: [] }],
+                responses: { '200': { description: 'OK' }, '401': { description: 'Unauthorized' }, '404': { description: 'Not Found' } },
+            },
+        },
+        '/api/games': {
+            get: {
+                summary: 'List game records',
+                security: [{ bearerAuth: [] }],
+                parameters: [
+                    { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 } },
+                    { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 } },
+                ],
+                responses: { '200': { description: 'OK' }, '401': { description: 'Unauthorized' } },
+            },
+            post: {
+                summary: 'Create game record',
+                security: [{ bearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: { 'application/json': { schema: { type: 'object' } } },
+                },
+                responses: { '201': { description: 'Created' }, '400': { description: 'Bad Request' }, '401': { description: 'Unauthorized' }, '409': { description: 'Conflict' } },
+            },
+        },
+        '/api/games/{id}': {
+            get: {
+                summary: 'Get game record by id',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+                responses: { '200': { description: 'OK' }, '401': { description: 'Unauthorized' }, '404': { description: 'Not Found' } },
+            },
+            delete: {
+                summary: 'Delete game record',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+                responses: { '200': { description: 'OK' }, '401': { description: 'Unauthorized' }, '404': { description: 'Not Found' } },
+            },
+        },
+        '/api/emotions/summary': {
+            get: {
+                summary: 'Get emotion summary',
+                security: [{ bearerAuth: [] }],
+                parameters: [{ name: 'lastN', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 50 } }],
+                responses: { '200': { description: 'OK' }, '401': { description: 'Unauthorized' } },
+            },
+        },
+        '/api/stats/profile': {
+            get: {
+                summary: 'Get user profile stats',
+                security: [{ bearerAuth: [] }],
+                responses: { '200': { description: 'OK' }, '401': { description: 'Unauthorized' }, '404': { description: 'Not Found' } },
+            },
+        },
+    },
+};
+
+app.get('/openapi.json', (_req, res) => {
+    res.json(openapi);
+});
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gameRoutes);
