@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── 用戶 ───────────────────────────────────────────
+
+enum UserRole {
+  PLAYER
+  PARENT
+  THERAPIST
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  displayName  String
+  role         UserRole     @default(PLAYER)
+  totalXp      Int          @default(0)
+  level        Int          @default(1)
+  gamesPlayed  Int          @default(0)
+  gamesWon     Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  gameRecords  GameRecord[]
+
+  @@map("users")
+}
+
+// ─── 遊戲記錄 ───────────────────────────────────────
+
+model GameRecord {
+  id              String          @id @default(uuid())
+  userId          String
+  sessionId       String          // APP 端產生的 session ID
+  startTime       DateTime
+  endTime         DateTime?
+  initialEmotion  String          // happy, neutral, frustrated
+  result          String?         // white_wins, black_wins, draw, incomplete
+  durationSeconds Int?
+  createdAt       DateTime        @default(now())
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moves           MoveRecord[]
+  chatHistory     ChatRecord[]
+  emotionLog      EmotionRecord[]
+
+  @@unique([userId, sessionId])
+  @@map("game_records")
+}
+
+// ─── 棋步記錄 ───────────────────────────────────────
+
+model MoveRecord {
+  id           String     @id @default(uuid())
+  gameRecordId String
+  moveNumber   Int
+  san          String     // Standard Algebraic Notation (e.g. "e4", "Nf3")
+  player       String     // "white" or "black"
+  timestamp    DateTime
+  preFen       String?    // FEN before move
+  postFen      String?    // FEN after move
+
+  gameRecord   GameRecord @relation(fields: [gameRecordId], references: [id], onDelete: Cascade)
+
+  @@map("move_records")
+}
+
+// ─── 聊天記錄 ───────────────────────────────────────
+
+model ChatRecord {
+  id           String     @id @default(uuid())
+  gameRecordId String
+  timestamp    DateTime
+  sender       String     // "ai" or "user"
+  message      String
+  userChoice   String?
+  aiResponse   String?
+  moveNumber   Int?
+  whitePreFen  String?
+  whitePostFen String?
+  blackPostFen String?
+  roundId      String?
+
+  gameRecord   GameRecord @relation(fields: [gameRecordId], references: [id], onDelete: Cascade)
+
+  @@map("chat_records")
+}
+
+// ─── 情緒記錄 ───────────────────────────────────────
+
+model EmotionRecord {
+  id           String     @id @default(uuid())
+  gameRecordId String
+  timestamp    DateTime
+  emotion      String     // "happy", "neutral", "frustrated"
+  moveNumber   Int?
+  trigger      String?    // "check", "capture", "user_input", etc.
+
+  gameRecord   GameRecord @relation(fields: [gameRecordId], references: [id], onDelete: Cascade)
+
+  @@map("emotion_records")
+}

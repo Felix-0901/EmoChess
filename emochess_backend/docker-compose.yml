@@ -1,0 +1,46 @@
+services:
+  # ─── PostgreSQL 資料庫 ──────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: emochess-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - emochess_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Node.js API 服務 ──────────────────────────────
+  api:
+    build: .
+    container_name: emochess-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  emochess_pgdata:

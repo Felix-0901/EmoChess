@@ -1,0 +1,46 @@
+# EmoChess Backend - Coolify 部署模板
+# ─────────────────────────────────────────
+# 在 Coolify 上使用步驟：
+# 1. 建立新的 Docker Compose 服務
+# 2. 指向此 repo 或上傳此檔案
+# 3. 在 Coolify UI 設定環境變數（將下方 ${VARIABLE} 替換為實際值）
+# 4. 部署
+
+services:
+  # ─── PostgreSQL 資料庫 ──────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-emochess_db}
+      POSTGRES_USER: ${POSTGRES_USER:-emochess}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - emochess_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-emochess} -d ${POSTGRES_DB:-emochess_db}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Node.js API 服務 ──────────────────────────────
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-emochess}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-emochess_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  emochess_pgdata:
