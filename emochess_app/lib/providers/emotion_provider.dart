@@ -184,6 +184,12 @@ class EmotionProvider extends ChangeNotifier {
           choices: _pendingRound!.choices,
           selectedChoice: choiceLabel,
           aiReply: responseText,
+          moveNumber: _pendingRound!.turnContext?.moveNumber,
+          emotion: _pendingRound!.turnContext?.emotionLevel.name,
+          trigger: _pendingRound!.triggerReason,
+          angleKey: _pendingRound!.angleKey,
+          intent: _pendingRound!.intent,
+          promptVersion: _pendingRound!.promptVersion,
           timestamp: DateTime.now(),
         ),
       );
@@ -269,11 +275,19 @@ class EmotionProvider extends ChangeNotifier {
     }
 
     if (_awaitingResponse) {
+      final meta = interaction.meta ?? const <String, dynamic>{};
       _pendingRound = _PendingRound(
         roundId: DateTime.now().microsecondsSinceEpoch.toString(),
         aiQuestion: messageText,
         choices: choiceTexts,
         turnContext: interaction.turnContext,
+        triggerReason: interaction.triggerReason,
+        angleKey: meta['angleKey']?.toString(),
+        intent: meta['intent']?.toString(),
+        promptVersion:
+            meta['promptVersion'] is int
+                ? meta['promptVersion'] as int
+                : int.tryParse('${meta['promptVersion']}'),
       );
     } else {
       _pendingRound = null;
@@ -330,11 +344,19 @@ class _PendingRound {
   final String aiQuestion;
   final List<String> choices;
   final AiTurnContext? turnContext;
+  final String? triggerReason;
+  final String? angleKey;
+  final String? intent;
+  final int? promptVersion;
 
   const _PendingRound({
     required this.roundId,
     required this.aiQuestion,
     required this.choices,
     required this.turnContext,
+    required this.triggerReason,
+    required this.angleKey,
+    required this.intent,
+    required this.promptVersion,
   });
 }

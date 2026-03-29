@@ -14,7 +14,7 @@ class SettingsProvider extends ChangeNotifier {
   /// Load settings from storage
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _locale = prefs.getString('locale') ?? 'en';
+    _locale = _normalizeLocale(prefs.getString('locale'));
     _showMoveHints = prefs.getBool('showMoveHints') ?? true;
     notifyListeners();
   }
@@ -28,7 +28,7 @@ class SettingsProvider extends ChangeNotifier {
 
   /// Set locale
   void setLocale(String locale) {
-    _locale = locale;
+    _locale = _normalizeLocale(locale);
     _saveSettings();
     notifyListeners();
   }
@@ -45,5 +45,13 @@ class SettingsProvider extends ChangeNotifier {
     _showMoveHints = !_showMoveHints;
     _saveSettings();
     notifyListeners();
+  }
+
+  String _normalizeLocale(String? input) {
+    final v = (input ?? 'en').trim();
+    if (v.isEmpty) return 'en';
+    final lower = v.toLowerCase();
+    if (lower.startsWith('zh')) return 'zh';
+    return 'en';
   }
 }

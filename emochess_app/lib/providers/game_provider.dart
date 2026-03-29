@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:chess/chess.dart' as chess_lib;
 import '../services/analysis_service.dart';
-import '../services/game_history_service.dart';
 import '../models/companion_interaction.dart';
 import '../models/game_session.dart';
 import '../models/emotion_state.dart';
 import '../models/chat_message.dart';
 import '../models/conversation_round.dart';
 import '../models/ai_turn_context.dart';
+import '../models/game_record.dart';
 import '../services/simple_chess_ai.dart';
 
 /// Game state provider for chess game management
@@ -21,7 +21,6 @@ class GameProvider extends ChangeNotifier {
   // Services
   final SimpleChessAi _aiService = SimpleChessAi();
   final AnalysisService _analysisService = AnalysisService();
-  final GameHistoryService _historyService = GameHistoryService();
 
   // Game record for saving history
   GameRecord? _currentGameRecord;
@@ -298,13 +297,28 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  /// Save and complete the current game
-  Future<String?> saveGameHistory(String result) async {
-    if (_currentGameRecord != null) {
-      _currentGameRecord!.completeGame(result);
-      return await _historyService.saveGameSession(_currentGameRecord!);
+  void completeCurrentGameRecord(String result) {
+    if (_currentGameRecord == null) return;
+    final rounds = getConversationRounds?.call();
+    if (rounds != null) {
+      _currentGameRecord!.setConversationRounds(rounds);
     }
-    return null;
+    _currentGameRecord!.completeGame(_normalizeResult(result));
+  }
+
+  String _normalizeResult(String result) {
+    switch (result) {
+      case 'win':
+        return 'white_wins';
+      case 'loss':
+        return 'black_wins';
+      case 'draw':
+        return 'draw';
+      case 'abandoned':
+        return 'incomplete';
+      default:
+        return result;
+    }
   }
 
   /// Get current game record

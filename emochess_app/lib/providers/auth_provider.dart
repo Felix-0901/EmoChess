@@ -30,6 +30,16 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? get levelProgress =>
       _user?['levelProgress'] as Map<String, dynamic>?;
 
+  Map<String, dynamic>? get equippedTitle =>
+      (_user?['equippedTitle'] as Map?)?.cast<String, dynamic>();
+
+  List<Map<String, dynamic>> get titles =>
+      (_user?['titles'] as List?)
+          ?.whereType<Map>()
+          .map((e) => e.cast<String, dynamic>())
+          .toList() ??
+      const [];
+
   int get xpInCurrentLevel => levelProgress?['xpInCurrentLevel'] as int? ?? 0;
   int get xpNeededForNextLevel =>
       levelProgress?['xpNeededForNextLevel'] as int? ?? 100;

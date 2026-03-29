@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/title_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
@@ -17,6 +18,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final TitleService _titleService = TitleService();
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +63,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
               builder: (context, settings, _) {
                 return Column(
                   children: [
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, _) {
+                        if (!auth.isLoggedIn) return const SizedBox.shrink();
+                        final isZh =
+                            context.watch<SettingsProvider>().isChinese;
+                        final titlesLabel = isZh ? '稱號' : 'Titles';
+                        final equipped = auth.equippedTitle;
+                        final equippedText =
+                            (equipped == null)
+                                ? ''
+                                : (isZh
+                                    ? (equipped['nameZh'] as String? ?? '')
+                                    : (equipped['nameEn'] as String? ?? ''));
+
+                        return _SettingsTile(
+                          icon: Icons.emoji_events_rounded,
+                          title: titlesLabel,
+                          subtitle:
+                              equippedText.trim().isNotEmpty
+                                  ? equippedText.trim()
+                                  : l10n.get('noTitlesYet'),
+                          trailing: Icon(
+                            Icons.arrow_forward_ios,
+                            color: AppColors.textSecondary,
+                            size: 16,
+                          ),
+                          onTap: () => _showTitlesSheet(context, l10n),
+                        );
+                      },
+                    ),
+
                     // 語言切換
                     _SettingsTile(
                       icon: Icons.language,
@@ -248,6 +282,174 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  Future<void> _showTitlesSheet(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    if (!context.mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final isZh = context.watch<SettingsProvider>().isChinese;
+        final titlesLabel = isZh ? '稱號' : 'Titles';
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.75,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.max,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        titlesLabel,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(l10n.get('close')),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: FutureBuilder<Map<String, dynamic>?>(
+                    future: _titleService.fetchTitles(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final data = snapshot.data;
+                      final titles =
+                          (data?['titles'] as List?)
+                              ?.whereType<Map>()
+                              .map((e) => e.cast<String, dynamic>())
+                              .toList() ??
+                          const [];
+
+                      if (titles.isEmpty) {
+                        return Center(child: Text(l10n.get('noTitlesYet')));
+                      }
+
+                      return ListView.builder(
+                        itemCount: titles.length,
+                        itemBuilder: (context, index) {
+                          final t = titles[index];
+                          final key = (t['key'] as String?)?.trim() ?? '';
+                          final name =
+                              isZh
+                                  ? (t['nameZh'] as String? ?? '')
+                                  : (t['nameEn'] as String? ?? '');
+                          final desc =
+                              isZh
+                                  ? (t['descriptionZh'] as String? ?? '')
+                                  : (t['descriptionEn'] as String? ?? '');
+                          final equipped = t['equipped'] == true;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(14),
+                            decoration: AppTheme.clayDecoration(
+                              color: AppColors.surface,
+                              borderRadius: 16,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        name,
+                                        style: GoogleFonts.baloo2(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      if (desc.trim().isNotEmpty) ...[
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          desc,
+                                          style: GoogleFonts.comicNeue(
+                                            fontSize: 13,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                if (equipped)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      l10n.get('equipped'),
+                                      style: GoogleFonts.comicNeue(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  TextButton(
+                                    onPressed: () async {
+                                      if (key.isEmpty) return;
+                                      await _titleService.equipTitle(key);
+                                      if (!context.mounted) return;
+                                      await context
+                                          .read<AuthProvider>()
+                                          .fetchProfile();
+                                      if (!context.mounted) return;
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text(l10n.get('equip')),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 // ─── 個人資料卡片 ──────────────────────────────────
@@ -303,15 +505,67 @@ class _ProfileCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          auth.displayName,
-                          style: GoogleFonts.baloo2(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Builder(
+                          builder: (context) {
+                            final isZh =
+                                context.watch<SettingsProvider>().isChinese;
+                            final equipped = auth.equippedTitle;
+                            final titleText =
+                                (equipped == null)
+                                    ? ''
+                                    : (isZh
+                                        ? (equipped['nameZh'] as String? ?? '')
+                                        : (equipped['nameEn'] as String? ?? ''));
+                            final hasTitle = titleText.trim().isNotEmpty;
+
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    auth.displayName,
+                                    style: GoogleFonts.baloo2(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (hasTitle) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      titleText.trim(),
+                                      style: GoogleFonts.comicNeue(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
                         ),
                         Text(
                           auth.email,

@@ -76,6 +76,8 @@ class AppLocalizations {
       'leaveGame': 'Leave Game?',
       'leaveGameMessage':
           'Your progress will not be saved.\nAre you sure you want to leave?',
+      'gameSyncFailed':
+          'Unable to sync this game to the server. Please check your internet and try again.',
       'stay': 'Stay',
       'leave': 'Leave',
 
@@ -94,6 +96,10 @@ class AppLocalizations {
 
       // Settings Screen
       'language': 'Language',
+      'english': 'English',
+      'traditionalChinese': 'Traditional Chinese',
+      'langShortEn': 'EN',
+      'langShortZh': '中',
       'game': 'Game',
       'showMoveHints': 'Show Move Hints',
       'showMoveHintsDesc': 'Highlight legal moves',
@@ -118,6 +124,10 @@ class AppLocalizations {
       'gamesPlayed': 'Played',
       'wins': 'Wins',
       'winRate': 'Win Rate',
+      'titles': 'Titles',
+      'equipped': 'Equipped',
+      'equip': 'Equip',
+      'noTitlesYet': 'No titles yet',
 
       // AI Companion Messages
       'aiMsgFrustrated1':
@@ -146,6 +156,10 @@ class AppLocalizations {
 
       // AI & Analysis - NEW
       'aiThinking': 'AI is thinking...',
+      'aiUnknownError': 'Unknown AI Error',
+      'aiConnectionLostTitle': 'AI Connection Lost',
+      'aiConnectionLostBody':
+          'Unable to connect to AI service. Please check your internet or try again later.',
       'emotionAnalysis': 'Emotion Analysis',
       'gameHistory': 'Game History',
       'noGamesYet': 'No games yet',
@@ -176,6 +190,21 @@ class AppLocalizations {
       'analysisNoMoves': 'No moves recorded yet.',
       'gameCompleted': 'Game Completed',
       'gameAbandoned': 'Game Abandoned',
+
+      'aiReport': 'AI Report',
+      'generateAiReport': 'Generate AI Report',
+      'reportGenerating': 'Generating report...',
+      'reportFailed': 'Report generation failed.',
+      'reportNeedsUpload': 'This game must be uploaded before generating a report.',
+      'reportSummaryTitle': 'Report Summary',
+      'reportEmotionOverviewTitle': 'Emotion Overview',
+      'reportHighlightsTitle': 'Key Moments',
+      'reportConversationPatternsTitle': 'Conversation Patterns',
+      'reportRecommendationsTitle': 'Recommendations',
+      'reportDisclaimerTitle': 'Disclaimer',
+      'copy': 'Copy',
+      'copied': 'Copied.',
+      'close': 'Close',
 
       // Companion Interactions - NEW
       'yes': 'Yes',
@@ -370,6 +399,7 @@ class AppLocalizations {
       'draw': '和局！',
       'leaveGame': '離開遊戲？',
       'leaveGameMessage': '你的進度將不會被保存。\n確定要離開嗎？',
+      'gameSyncFailed': '無法同步棋局到伺服器，請檢查網路後再試。',
       'stay': '留下',
       'leave': '離開',
 
@@ -388,6 +418,10 @@ class AppLocalizations {
 
       // Settings Screen
       'language': '語言',
+      'english': '英文',
+      'traditionalChinese': '繁體中文',
+      'langShortEn': 'EN',
+      'langShortZh': '中',
       'game': '遊戲',
       'showMoveHints': '顯示走法提示',
       'showMoveHintsDesc': '標記合法走法',
@@ -412,6 +446,10 @@ class AppLocalizations {
       'gamesPlayed': '棋局',
       'wins': '勝場',
       'winRate': '勝率',
+      'titles': '稱號',
+      'equipped': '已裝備',
+      'equip': '裝備',
+      'noTitlesYet': '目前還沒有稱號',
 
       // AI Companion Messages
       'aiMsgFrustrated1': '感到沮喪是正常的。要不要休息一下做個呼吸練習？',
@@ -438,6 +476,9 @@ class AppLocalizations {
 
       // AI & Analysis
       'aiThinking': 'AI 正在思考...',
+      'aiUnknownError': '未知的 AI 錯誤',
+      'aiConnectionLostTitle': 'AI 連線中斷',
+      'aiConnectionLostBody': '無法連接到 AI 服務，請檢查網路或稍後再試。',
       'emotionAnalysis': '情緒分析',
       'gameHistory': '遊戲紀錄',
       'noGamesYet': '還沒有遊戲紀錄',
@@ -468,6 +509,21 @@ class AppLocalizations {
       'analysisNoMoves': '目前沒有步數紀錄',
       'gameCompleted': '遊戲完成',
       'gameAbandoned': '遊戲中止',
+
+      'aiReport': 'AI 報告',
+      'generateAiReport': '生成 AI 報告',
+      'reportGenerating': '正在生成報告…',
+      'reportFailed': '報告生成失敗。',
+      'reportNeedsUpload': '此對局需要先上傳雲端才能生成報告。',
+      'reportSummaryTitle': '報告摘要',
+      'reportEmotionOverviewTitle': '情緒概覽',
+      'reportHighlightsTitle': '關鍵時刻',
+      'reportConversationPatternsTitle': '對話模式',
+      'reportRecommendationsTitle': '建議',
+      'reportDisclaimerTitle': '提醒',
+      'copy': '複製',
+      'copied': '已複製。',
+      'close': '關閉',
 
       // Companion Interactions
       'yes': '是',

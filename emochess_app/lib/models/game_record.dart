@@ -1,137 +1,66 @@
-import 'dart:convert';
-import 'dart:io';
+import '../models/conversation_round.dart';
 
-import 'package:path_provider/path_provider.dart';
-
-/// Service for saving and loading game history
-/// Records moves, chat history, and emotional states for analysis
-class GameHistoryService {
-  static const String _historyFolder = 'game_history';
-
-  /// Save a complete game session to JSON file
-  Future<String?> saveGameSession(GameRecord record) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final historyDir = Directory('${directory.path}/$_historyFolder');
-
-      if (!await historyDir.exists()) {
-        await historyDir.create(recursive: true);
-      }
-
-      final fileName = 'game_${record.sessionId}.json';
-      final file = File('${historyDir.path}/$fileName');
-
-      final jsonString = const JsonEncoder.withIndent(
-        '  ',
-      ).convert(record.toJson());
-      await file.writeAsString(jsonString);
-
-      return file.path;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Load all game records for analysis
-  Future<List<GameRecord>> loadAllGameRecords() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final historyDir = Directory('${directory.path}/$_historyFolder');
-
-      if (!await historyDir.exists()) {
-        return [];
-      }
-
-      final List<GameRecord> records = [];
-      await for (final entity in historyDir.list()) {
-        if (entity is File && entity.path.endsWith('.json')) {
-          try {
-            final content = await entity.readAsString();
-            final json = jsonDecode(content) as Map<String, dynamic>;
-            records.add(GameRecord.fromJson(json));
-          } catch (_) {}
-        }
-      }
-
-      // Sort by start time, most recent first
-      records.sort((a, b) => b.startTime.compareTo(a.startTime));
-      return records;
-    } catch (_) {
-      return [];
-    }
-  }
-
-  /// Delete a game record
-  Future<bool> deleteGameRecord(String sessionId) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File(
-        '${directory.path}/$_historyFolder/game_$sessionId.json',
-      );
-
-      if (await file.exists()) {
-        await file.delete();
-        return true;
-      }
-      return false;
-    } catch (_) {
-      return false;
-    }
-  }
-}
-
-/// Complete game record for analysis
+/// Complete game record for analysis and cloud sync
 class GameRecord {
+  String? cloudId;
   final String sessionId;
   final DateTime startTime;
   DateTime? endTime;
   final List<MoveRecord> moves;
   final List<ChatRecord> chatHistory;
   final List<EmotionRecord> emotionLog;
+  final List<ConversationRound> conversationRounds;
   final String initialEmotion;
   String? result; // 'white_wins', 'black_wins', 'draw', 'incomplete'
+  final int? movesCount;
 
   GameRecord({
+    this.cloudId,
     required this.sessionId,
     required this.startTime,
     this.endTime,
     List<MoveRecord>? moves,
     List<ChatRecord>? chatHistory,
     List<EmotionRecord>? emotionLog,
+    List<ConversationRound>? conversationRounds,
     required this.initialEmotion,
     this.result,
+    this.movesCount,
   }) : moves = moves ?? [],
        chatHistory = chatHistory ?? [],
-       emotionLog = emotionLog ?? [];
+       emotionLog = emotionLog ?? [],
+       conversationRounds = conversationRounds ?? [];
 
-  /// Add a move record
   void addMove(MoveRecord move) {
     moves.add(move);
   }
 
-  /// Add a chat record
   void addChat(ChatRecord chat) {
     chatHistory.add(chat);
   }
 
-  /// Add an emotion record
   void addEmotion(EmotionRecord emotion) {
     emotionLog.add(emotion);
   }
 
-  /// Complete the game
+  void setConversationRounds(List<ConversationRound> rounds) {
+    conversationRounds
+      ..clear()
+      ..addAll(rounds);
+  }
+
   void completeGame(String gameResult) {
     endTime = DateTime.now();
     result = gameResult;
   }
 
-  /// Calculate game duration
   Duration get duration {
     return (endTime ?? DateTime.now()).difference(startTime);
   }
 
   Map<String, dynamic> toJson() {
     return {
+      if (cloudId != null) 'cloudId': cloudId,
       'sessionId': sessionId,
       'startTime': startTime.toIso8601String(),
       'endTime': endTime?.toIso8601String(),
@@ -141,18 +70,26 @@ class GameRecord {
       'moves': moves.map((m) => m.toJson()).toList(),
       'chatHistory': chatHistory.map((c) => c.toJson()).toList(),
       'emotionLog': emotionLog.map((e) => e.toJson()).toList(),
+      'conversationRounds': conversationRounds.map((r) => r.toJson()).toList(),
+      if (movesCount != null) 'movesCount': movesCount,
     };
   }
 
   factory GameRecord.fromJson(Map<String, dynamic> json) {
     return GameRecord(
+      cloudId: json['cloudId'] as String?,
       sessionId: json['sessionId'] as String,
       startTime: DateTime.parse(json['startTime'] as String),
-      endTime: json['endTime'] != null
-          ? DateTime.parse(json['endTime'] as String)
-          : null,
+      endTime:
+          json['endTime'] != null
+              ? DateTime.parse(json['endTime'] as String)
+              : null,
       initialEmotion: json['initialEmotion'] as String? ?? 'neutral',
       result: json['result'] as String?,
+      movesCount:
+          json['movesCount'] is int
+              ? json['movesCount'] as int
+              : int.tryParse('${json['movesCount']}'),
       moves:
           (json['moves'] as List<dynamic>?)
               ?.map((m) => MoveRecord.fromJson(m as Map<String, dynamic>))
@@ -168,18 +105,24 @@ class GameRecord {
               ?.map((e) => EmotionRecord.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      conversationRounds:
+          (json['conversationRounds'] as List<dynamic>?)
+              ?.map(
+                (r) => ConversationRound.fromJson(r as Map<String, dynamic>),
+              )
+              .toList() ??
+          [],
     );
   }
 }
 
-/// Record of a single chess move
 class MoveRecord {
   final int moveNumber;
-  final String san; // Standard Algebraic Notation
+  final String san;
   final String player; // 'white' or 'black'
   final DateTime timestamp;
-  final String? preFen; // Board state before move
-  final String? postFen; // Board state after move
+  final String? preFen;
+  final String? postFen;
 
   MoveRecord({
     required this.moveNumber,
@@ -213,13 +156,12 @@ class MoveRecord {
   }
 }
 
-/// Record of a chat interaction
 class ChatRecord {
   final DateTime timestamp;
   final String sender; // 'ai' or 'user'
   final String message;
-  final String? userChoice; // If user selected a choice
-  final String? aiResponse; // AI's response to user choice
+  final String? userChoice;
+  final String? aiResponse;
   final int? moveNumber;
   final String? whitePreFen;
   final String? whitePostFen;
@@ -270,13 +212,11 @@ class ChatRecord {
   }
 }
 
-/// Record of an emotional state change
 class EmotionRecord {
   final DateTime timestamp;
-  final String emotion; // 'happy', 'neutral', 'frustrated'
-  final int? moveNumber; // Which move triggered this emotion
-  final String?
-  trigger; // What triggered the emotion (e.g., 'check', 'capture', 'user_input')
+  final String emotion;
+  final int? moveNumber;
+  final String? trigger;
 
   EmotionRecord({
     required this.timestamp,
@@ -303,3 +243,4 @@ class EmotionRecord {
     );
   }
 }
+

@@ -1,17 +1,42 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/game_record_provider.dart';
-import '../services/game_history_service.dart';
+import '../providers/settings_provider.dart';
+import '../services/report_service.dart';
+import '../models/game_record.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 
-class AnalysisDetailScreen extends StatelessWidget {
+class AnalysisDetailScreen extends StatefulWidget {
   final String recordId;
 
   const AnalysisDetailScreen({super.key, required this.recordId});
+
+  @override
+  State<AnalysisDetailScreen> createState() => _AnalysisDetailScreenState();
+}
+
+class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
+  Future<GameRecord?>? _loadFuture;
+  final ReportService _reportService = ReportService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _loadFuture = context
+            .read<GameRecordProvider>()
+            .ensureRecordLoaded(widget.recordId);
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +45,13 @@ class AnalysisDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.get('emotionAnalysis')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome_rounded),
+            tooltip: l10n.get('aiReport'),
+            onPressed: () => _onGenerateReport(context),
+          ),
+        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () {
@@ -34,40 +66,259 @@ class AnalysisDetailScreen extends StatelessWidget {
       body: SafeArea(
         child: Consumer<GameRecordProvider>(
           builder: (context, provider, _) {
-            if (provider.isLoading) {
+            final future = _loadFuture;
+            if (provider.isLoading || future == null) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final record = provider.getRecord(recordId);
-            if (record == null) {
-              return Center(
-                child: Text(
-                  l10n.get('analysisNotFound'),
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              );
-            }
+            return FutureBuilder<GameRecord?>(
+              future: future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SummaryCard(record: record),
-                  const SizedBox(height: 16),
-                  _EmotionTrendCard(record: record),
-                  const SizedBox(height: 16),
-                  _EmotionDistributionCard(record: record),
-                  const SizedBox(height: 16),
-                  _ChatHistoryCard(record: record),
-                  const SizedBox(height: 16),
-                  _MoveHistoryCard(record: record),
-                ],
-              ),
+                final record =
+                    snapshot.data ?? provider.getRecord(widget.recordId);
+                if (record == null) {
+                  return Center(
+                    child: Text(
+                      l10n.get('analysisNotFound'),
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  );
+                }
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _SummaryCard(record: record),
+                      const SizedBox(height: 16),
+                      _EmotionTrendCard(record: record),
+                      const SizedBox(height: 16),
+                      _EmotionDistributionCard(record: record),
+                      const SizedBox(height: 16),
+                      _ChatHistoryCard(record: record),
+                      const SizedBox(height: 16),
+                      _MoveHistoryCard(record: record),
+                    ],
+                  ),
+                );
+              },
             );
           },
         ),
       ),
+    );
+  }
+
+  Future<void> _onGenerateReport(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final provider = context.read<GameRecordProvider>();
+    final record = provider.getRecord(widget.recordId);
+    final gameId = record?.cloudId;
+    if (gameId == null || gameId.trim().isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.get('reportNeedsUpload'))),
+      );
+      return;
+    }
+
+    final lang = context.read<SettingsProvider>().locale;
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => AlertDialog(
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(l10n.get('reportGenerating'))),
+              ],
+            ),
+          ),
+    );
+
+    Map<String, dynamic>? report;
+    try {
+      report = await _reportService.generateGameReport(
+        gameId: gameId,
+        language: lang,
+      );
+    } catch (_) {
+      report = null;
+    }
+
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+
+    if (report == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.get('reportFailed'))),
+      );
+      return;
+    }
+
+    if (!context.mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final pretty = const JsonEncoder.withIndent('  ').convert(report);
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.85,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.max,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.get('aiReport'),
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          await Clipboard.setData(ClipboardData(text: pretty));
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.get('copied'))),
+                          );
+                        },
+                        child: Text(l10n.get('copy')),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(l10n.get('close')),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                      _ReportSection(
+                        title: l10n.get('reportSummaryTitle'),
+                        child: Text(
+                          (report?['summary'] as String?)?.trim().isNotEmpty ==
+                                  true
+                              ? (report?['summary'] as String).trim()
+                              : pretty,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _ReportSection(
+                        title: l10n.get('reportEmotionOverviewTitle'),
+                        child: _buildKeyValueList(report?['emotion_overview']),
+                      ),
+                      const SizedBox(height: 12),
+                      _ReportSection(
+                        title: l10n.get('reportHighlightsTitle'),
+                        child: _buildListBlocks(report?['highlights']),
+                      ),
+                      const SizedBox(height: 12),
+                      _ReportSection(
+                        title: l10n.get('reportConversationPatternsTitle'),
+                        child: _buildListBlocks(report?['conversation_patterns']),
+                      ),
+                      const SizedBox(height: 12),
+                      _ReportSection(
+                        title: l10n.get('reportRecommendationsTitle'),
+                        child: _buildListBlocks(report?['recommendations']),
+                      ),
+                      const SizedBox(height: 12),
+                      if (report?['disclaimer'] != null)
+                        _ReportSection(
+                          title: l10n.get('reportDisclaimerTitle'),
+                          child: Text('${report?['disclaimer']}'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildKeyValueList(dynamic map) {
+    if (map is! Map) return const SizedBox.shrink();
+    final entries = map.entries.toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children:
+          entries
+              .map(
+                (e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text('${e.key}: ${e.value}'),
+                ),
+              )
+              .toList(),
+    );
+  }
+
+  Widget _buildListBlocks(dynamic list) {
+    if (list is! List) return const SizedBox.shrink();
+    final items =
+        list.whereType<Map>().map((m) => m.cast<String, dynamic>()).toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children:
+          items
+              .map(
+                (item) => Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border, width: 1),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children:
+                        item.entries
+                            .where(
+                              (e) =>
+                                  e.value != null &&
+                                  '${e.value}'.trim().isNotEmpty,
+                            )
+                            .map(
+                              (e) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Text('${e.key}: ${e.value}'),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ),
+              )
+              .toList(),
     );
   }
 }
@@ -155,16 +406,50 @@ class _SummaryCard extends StatelessWidget {
   String _resultLabel(String? result, AppLocalizations l10n) {
     switch (result) {
       case 'win':
+      case 'white_wins':
         return l10n.get('resultWin');
       case 'loss':
+      case 'black_wins':
         return l10n.get('resultLoss');
       case 'draw':
         return l10n.get('resultDraw');
       case 'abandoned':
+      case 'incomplete':
         return l10n.get('resultAbandoned');
       default:
         return l10n.get('resultUnknown');
     }
+  }
+}
+
+class _ReportSection extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _ReportSection({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.clayDecoration(
+        color: AppColors.surface,
+        borderRadius: 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
   }
 }
 

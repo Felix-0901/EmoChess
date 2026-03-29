@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../l10n/app_localizations.dart';
 
 class AiErrorScreen extends StatelessWidget {
   final VoidCallback onRetry;
@@ -15,10 +16,7 @@ class AiErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Add localized strings for error screen if not present.
-    // For now using hardcoded Chinese/English fallback or generic keys.
-    // Ideally, add keys to AppLocalizations and regen.
-    // Assuming we want to move fast, I'll use hardcoded for now or simple "Error"
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -47,7 +45,7 @@ class AiErrorScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'AI 連線中斷\n(AI Connection Lost)',
+                l10n.get('aiConnectionLostTitle'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: AppColors.textPrimary,
@@ -56,8 +54,9 @@ class AiErrorScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                errorMessage ??
-                    '無法連接到 AI 服務，請檢查網路或是稍後再試。\n(Unable to connect to AI service. Please check your internet or try again later.)',
+                (errorMessage?.trim().isNotEmpty == true)
+                    ? errorMessage!.trim()
+                    : l10n.get('aiConnectionLostBody'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
@@ -80,7 +79,7 @@ class AiErrorScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('回主選單 (Menu)'),
+                  child: Text(l10n.get('returnHome')),
                 ),
               ),
             ],

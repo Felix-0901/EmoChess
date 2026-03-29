@@ -19,6 +19,7 @@ class CompanionInteraction {
   final String? yesKey;
   final String? noKey;
   final AiTurnContext? turnContext;
+  final Map<String, dynamic>? meta;
   final DateTime timestamp;
   final String? triggerReason;
 
@@ -30,6 +31,7 @@ class CompanionInteraction {
     this.yesKey,
     this.noKey,
     this.turnContext,
+    this.meta,
     DateTime? timestamp,
     this.triggerReason,
   }) : assert(
@@ -44,12 +46,14 @@ class CompanionInteraction {
     String? trigger,
     String? text,
     AiTurnContext? turnContext,
+    Map<String, dynamic>? meta,
   }) {
     return CompanionInteraction(
       messageKey: text == null ? messageKey : null,
       text: text,
       type: CompanionInteractionType.message,
       turnContext: turnContext,
+      meta: meta,
       triggerReason: trigger,
     );
   }
@@ -62,6 +66,7 @@ class CompanionInteraction {
     String noKey = 'no',
     String? trigger,
     AiTurnContext? turnContext,
+    Map<String, dynamic>? meta,
   }) {
     return CompanionInteraction(
       messageKey: messageKey,
@@ -70,6 +75,7 @@ class CompanionInteraction {
       yesKey: yesKey,
       noKey: noKey,
       turnContext: turnContext,
+      meta: meta,
       triggerReason: trigger,
     );
   }
@@ -81,6 +87,7 @@ class CompanionInteraction {
     required List<CompanionChoice> choices,
     String? trigger,
     AiTurnContext? turnContext,
+    Map<String, dynamic>? meta,
   }) {
     return CompanionInteraction(
       messageKey: messageKey,
@@ -88,6 +95,7 @@ class CompanionInteraction {
       type: CompanionInteractionType.multiChoice,
       choices: choices,
       turnContext: turnContext,
+      meta: meta,
       triggerReason: trigger,
     );
   }

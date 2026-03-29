@@ -9,7 +9,6 @@ import 'theme/app_theme.dart';
 import 'providers/game_provider.dart';
 import 'providers/emotion_provider.dart';
 import 'providers/settings_provider.dart';
-import 'providers/game_history_provider.dart';
 import 'providers/game_record_provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/home_screen.dart';
@@ -56,9 +55,6 @@ class EmoChessApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => EmotionProvider()),
         ChangeNotifierProvider(
           create: (_) => SettingsProvider()..loadSettings(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => GameHistoryProvider()..initialize(),
         ),
         ChangeNotifierProvider(
           create: (_) => GameRecordProvider()..initialize(),
@@ -165,7 +161,8 @@ class _EmoChessRouterState extends State<_EmoChessRouter> {
           path: '/ai-error',
           pageBuilder: (context, state) {
             final errorMsg =
-                state.uri.queryParameters['msg'] ?? 'Unknown AI Error';
+                state.uri.queryParameters['msg'] ??
+                AppLocalizations.of(context).get('aiUnknownError');
             return _pageWithDefaultTransition(
               key: state.pageKey,
               child: AiErrorScreen(

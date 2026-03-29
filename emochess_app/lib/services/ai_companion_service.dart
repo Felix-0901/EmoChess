@@ -22,6 +22,7 @@ class AiCompanionService {
   static const int _maxRecentMessages = 10;
   static const int _maxAvoidLabels = 10;
   static const int _maxAvoidPhrases = 10;
+  static const int _promptVersion = 2;
   static const Duration _timeout = Duration(seconds: 20);
 
   final String _apiBaseUrl;
@@ -301,6 +302,11 @@ class AiCompanionService {
 2) 給 2 個選項讓他回答（選項要短，2-8 字）
 3) 每個選項附上你接下來會說的話
 
+聊天角度（每回合必選 1 個，避免重複最近用過的）：
+- dominance（我有點得意）、pressure（我被你逼到）、test（你在試我嗎）、challenge（約戰/挑釁）
+- bait（你在釣魚？）、trade（換子/交換）、defend（守住/撐住）、block（卡住/擋路）
+- tempo（節奏/搶拍）、style（你的風格）、sneak（偷襲/陰招）、surprise（嚇到）、risk（冒險）、trap（陷阱）、plan（你在想什麼計畫）
+
 重要規則：
 - 你是黑棋，用「你」稱呼白棋小朋友，用「我」稱呼自己
 - 只提白棋剛走的棋子，不要提格子座標（e4, b3 之類的）
@@ -311,8 +317,10 @@ class AiCompanionService {
 - message：你（小黑/黑方）說的話，一定是問句
 - label：小朋友（白方）回你的話
 - response：你接著說的話（不是問句，是陳述句或感嘆句）
+- meta：可選，放你這回合用的 angleKey/intent/promptVersion
 {
   "message": "你說的話（問句）",
+  "meta": { "angleKey": "style", "intent": "chat", "promptVersion": $_promptVersion },
   "choices": [
     { "label": "選項1", "response": "你的回覆1" },
     { "label": "選項2", "response": "你的回覆2" }
@@ -352,6 +360,12 @@ Each turn you must:
 2) Give exactly 2 reply options (short, 2-6 words each)
 3) Each option has your follow-up response
 
+Chat angles (pick EXACTLY 1 each turn; avoid repeating recently used angles):
+- dominance, pressure, test, challenge
+- bait, trade, defend, block
+- tempo, style, sneak, surprise
+- risk, trap, plan
+
 Important rules:
 - You are Black. Use "you" for the White player, "I" for yourself
 - Only mention the piece White just moved, NO square coordinates (e4, b3, etc.)
@@ -362,8 +376,10 @@ Output MUST be strict JSON:
 - message: what YOU (Black/Blackie) say — must be a question
 - label: what the KID (White) says back to you
 - response: what YOU say next (NOT a question — make it a statement or exclamation)
+- meta: optional info for tracking angle/intent/promptVersion
 {
   "message": "Your question",
+  "meta": { "angleKey": "style", "intent": "chat", "promptVersion": $_promptVersion },
   "choices": [
     { "label": "Option 1", "response": "Your follow-up 1" },
     { "label": "Option 2", "response": "Your follow-up 2" }
@@ -441,7 +457,11 @@ Output MUST be strict JSON:
       );
     }
 
-    final payload = _buildTurnPayload(context, recentRounds: recentRounds);
+    final payload = _buildTurnPayload(
+      context,
+      recentRounds: recentRounds,
+      intent: intent,
+    );
 
     buffer.writeln('Structured Turn Payload(JSON):');
     buffer.writeln(jsonEncode(payload));
@@ -460,6 +480,7 @@ Output MUST be strict JSON:
   Map<String, dynamic> _buildTurnPayload(
     AiTurnContext context, {
     List<ConversationRound>? recentRounds,
+    required AiInteractionIntent intent,
   }) {
     final rounds = recentRounds ?? const [];
     final start = rounds.length > 10 ? rounds.length - 10 : 0;
@@ -469,6 +490,9 @@ Output MUST be strict JSON:
       'white_post_fen': context.postFen,
       'black_post_fen': context.opponentPostFen,
       'emotion': context.emotionLevel.name,
+      'intent': intent.name,
+      'recent_angle_keys': _recentAngleKeys,
+      'prompt_version': _promptVersion,
       'recent_10_rounds': trimmed.map((r) => r.toJson()).toList(),
     };
   }
@@ -555,6 +579,7 @@ Output MUST be strict JSON:
         context.language,
         context,
       );
+      final meta = _extractMeta(data, intent, context);
       final choicesData = data['choices'] as List<dynamic>? ?? [];
 
       final choices = <CompanionChoice>[];
@@ -601,6 +626,7 @@ Output MUST be strict JSON:
         choices: normalized,
         trigger: 'dynamic',
         turnContext: context,
+        meta: meta,
       );
     }
 
@@ -625,6 +651,22 @@ Output MUST be strict JSON:
     }
 
     return null;
+  }
+
+  Map<String, dynamic> _extractMeta(
+    Map<String, dynamic> data,
+    AiInteractionIntent intent,
+    AiTurnContext context,
+  ) {
+    final metaRaw = data['meta'];
+    final meta =
+        metaRaw is Map
+            ? metaRaw.map((k, v) => MapEntry(k.toString(), v))
+            : <String, dynamic>{};
+    meta.putIfAbsent('intent', () => intent.name);
+    meta.putIfAbsent('promptVersion', () => _promptVersion);
+    meta.putIfAbsent('language', () => context.language);
+    return meta;
   }
 
   CompanionInteraction _fallbackFromRawText(
@@ -662,6 +704,7 @@ Output MUST be strict JSON:
       choices: choices,
       trigger: 'dynamic_recovered',
       turnContext: context,
+      meta: {'intent': intent.name, 'promptVersion': _promptVersion},
     );
     return _diversifyInteraction(interaction, context, intent: intent);
   }
@@ -820,10 +863,11 @@ Output MUST be strict JSON:
         _recentChoiceSignatures.removeAt(0);
       }
     }
-    final angleKey = _detectAngleKey(
-      message,
-      interaction.turnContext?.language,
-    );
+    final metaAngle = interaction.meta?['angleKey']?.toString();
+    final angleKey =
+        (metaAngle != null && metaAngle.trim().isNotEmpty)
+            ? metaAngle.trim()
+            : _detectAngleKey(message, interaction.turnContext?.language);
     if (angleKey != null) {
       _recentAngleKeys.add(angleKey);
       if (_recentAngleKeys.length > _maxRecentMessages) {
@@ -876,6 +920,7 @@ Output MUST be strict JSON:
       choices: finalChoices,
       trigger: interaction.triggerReason,
       turnContext: context,
+      meta: interaction.meta ?? {'intent': intent.name, 'promptVersion': _promptVersion},
     );
   }
 

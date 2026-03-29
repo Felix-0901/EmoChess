@@ -4,11 +4,12 @@ import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
 import '../providers/emotion_provider.dart';
 import '../providers/settings_provider.dart';
-import '../providers/game_history_provider.dart';
 import '../providers/game_record_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/game_session.dart';
 import '../models/chat_message.dart';
 import '../models/ai_turn_context.dart';
+import '../services/game_cloud_service.dart';
 import '../widgets/chat_area.dart';
 import '../widgets/chess_board.dart';
 import '../widgets/interaction_area.dart';
@@ -26,6 +27,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   bool _gameOverDialogShown = false;
+  final GameCloudService _cloudService = GameCloudService();
 
   @override
   void initState() {
@@ -265,17 +267,15 @@ class _GameScreenState extends State<GameScreen> {
             child: Text(l10n.stay, style: TextStyle(color: AppColors.primary)),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Save game before leaving
+            onPressed: () async {
               final gameProvider = context.read<GameProvider>();
-              final historyProvider = context.read<GameHistoryProvider>();
               final recordProvider = context.read<GameRecordProvider>();
-              final session = gameProvider.endGame(GameResult.abandoned);
-              if (session != null) {
-                historyProvider.saveGame(session);
-              }
-              gameProvider.saveGameHistory(GameResult.abandoned.name);
-              recordProvider.refresh();
+              final authProvider = context.read<AuthProvider>();
+              gameProvider.endGame(GameResult.abandoned);
+              gameProvider.completeCurrentGameRecord(GameResult.abandoned.name);
+              await _uploadCurrentGame(context, gameProvider, authProvider);
+              await recordProvider.refresh();
+              if (!context.mounted) return;
               Navigator.pop(context);
               context.go('/');
             },
@@ -299,19 +299,21 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     // Save game to history
-    final historyProvider = context.read<GameHistoryProvider>();
     final recordProvider = context.read<GameRecordProvider>();
+    final authProvider = context.read<AuthProvider>();
     final gameResult = result == GameOverResult.playerWin
         ? GameResult.win
         : (result == GameOverResult.playerLose
               ? GameResult.loss
               : GameResult.draw);
-    final session = game.endGame(gameResult);
-    if (session != null) {
-      historyProvider.saveGame(session);
-    }
-    game.saveGameHistory(gameResult.name);
-    recordProvider.refresh();
+    game.endGame(gameResult);
+    Future(() async {
+      try {
+        game.completeCurrentGameRecord(gameResult.name);
+        await _uploadCurrentGame(context, game, authProvider);
+        await recordProvider.refresh();
+      } catch (_) {}
+    });
 
     showDialog(
       context: context,
@@ -324,7 +326,11 @@ class _GameScreenState extends State<GameScreen> {
         },
         onViewAnalysis: () {
           Navigator.pop(context);
-          context.go('/analysis');
+          Future(() async {
+            await _syncBeforeNavigate(context, game, authProvider, recordProvider);
+            if (!context.mounted) return;
+            context.go('/analysis');
+          });
         },
         onPlayAgain: () {
           Navigator.pop(context);
@@ -336,5 +342,62 @@ class _GameScreenState extends State<GameScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _syncBeforeNavigate(
+    BuildContext context,
+    GameProvider gameProvider,
+    AuthProvider authProvider,
+    GameRecordProvider recordProvider,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => AlertDialog(
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(l10n.get('analyzing'))),
+              ],
+            ),
+          ),
+    );
+    try {
+      await _uploadCurrentGame(context, gameProvider, authProvider);
+      await recordProvider.refresh();
+    } finally {
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _uploadCurrentGame(
+    BuildContext context,
+    GameProvider gameProvider,
+    AuthProvider authProvider,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final record = gameProvider.currentGameRecord;
+    if (record == null) return;
+    if (record.cloudId != null && record.cloudId!.trim().isNotEmpty) return;
+
+    final cloudId = await _cloudService.uploadGameRecord(record);
+    if (cloudId == null || cloudId.trim().isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.get('gameSyncFailed'))),
+      );
+      return;
+    }
+
+    record.cloudId = cloudId.trim();
+    await authProvider.fetchProfile();
   }
 }

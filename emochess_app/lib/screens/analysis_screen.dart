@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_record_provider.dart';
-import '../services/game_history_service.dart';
+import '../models/game_record.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
@@ -124,7 +124,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               return _GameHistoryCard(
                 game: game,
                 l10n: l10n,
-                onTap: () => context.push('/analysis/${game.sessionId}'),
+                onTap:
+                    () => context.push(
+                      '/analysis/${context.read<GameRecordProvider>().recordKey(game)}',
+                    ),
               );
             },
           ),
@@ -241,7 +244,7 @@ class _GameHistoryCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${game.moves.length} ${l10n.get('totalMoves')}',
+                        '${game.movesCount ?? game.moves.length} ${l10n.get('totalMoves')}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -286,12 +289,15 @@ class _GameHistoryCard extends StatelessWidget {
   String _resultLabel(String? result, AppLocalizations l10n) {
     switch (result) {
       case 'win':
+      case 'white_wins':
         return l10n.get('resultWin');
       case 'loss':
+      case 'black_wins':
         return l10n.get('resultLoss');
       case 'draw':
         return l10n.get('resultDraw');
       case 'abandoned':
+      case 'incomplete':
         return l10n.get('resultAbandoned');
       default:
         return l10n.get('resultUnknown');
