@@ -141,7 +141,8 @@ class _LoginScreenState extends State<LoginScreen>
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // 錯誤訊息
-                              if (auth.errorMessage != null) ...[
+                              if (auth.errorKey != null ||
+                                  auth.errorMessage != null) ...[
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
@@ -166,7 +167,9 @@ class _LoginScreenState extends State<LoginScreen>
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          auth.errorMessage!,
+                                          auth.errorKey != null
+                                              ? l10n.get(auth.errorKey!)
+                                              : auth.errorMessage!,
                                           style: GoogleFonts.comicNeue(
                                             color: AppColors.error,
                                             fontSize: 14,
@@ -199,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen>
                               // Email
                               _ClayTextField(
                                 controller: _emailController,
-                                label: 'Email',
+                                label: l10n.get('email'),
                                 icon: Icons.email_rounded,
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (v) {

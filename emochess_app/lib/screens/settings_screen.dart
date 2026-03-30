@@ -98,7 +98,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _SettingsTile(
                       icon: Icons.language,
                       title: l10n.language,
-                      subtitle: settings.isEnglish ? 'English' : '繁體中文',
+                      subtitle:
+                          settings.isEnglish
+                              ? l10n.get('english')
+                              : l10n.get('traditionalChinese'),
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -109,7 +112,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          settings.isEnglish ? 'EN' : '中',
+                          settings.isEnglish
+                              ? l10n.get('langShortEn')
+                              : l10n.get('langShortZh'),
                           style: TextStyle(
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,

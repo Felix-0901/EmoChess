@@ -8,11 +8,13 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isLoggedIn = false;
   Map<String, dynamic>? _user;
+  String? _errorKey;
   String? _errorMessage;
 
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _isLoggedIn;
   Map<String, dynamic>? get user => _user;
+  String? get errorKey => _errorKey;
   String? get errorMessage => _errorMessage;
 
   // ─── 基本資訊 ─────────────────────────────
@@ -77,6 +79,7 @@ class AuthProvider extends ChangeNotifier {
     required String displayName,
   }) async {
     _isLoading = true;
+    _errorKey = null;
     _errorMessage = null;
     notifyListeners();
 
@@ -91,8 +94,10 @@ class AuthProvider extends ChangeNotifier {
     if (result.isSuccess) {
       _user = result.user;
       _isLoggedIn = true;
+      _errorKey = null;
       _errorMessage = null;
     } else {
+      _errorKey = result.errorKey;
       _errorMessage = result.errorMessage;
     }
 
@@ -103,6 +108,7 @@ class AuthProvider extends ChangeNotifier {
   /// 登入
   Future<bool> login({required String email, required String password}) async {
     _isLoading = true;
+    _errorKey = null;
     _errorMessage = null;
     notifyListeners();
 
@@ -113,8 +119,10 @@ class AuthProvider extends ChangeNotifier {
     if (result.isSuccess) {
       _user = result.user;
       _isLoggedIn = true;
+      _errorKey = null;
       _errorMessage = null;
     } else {
+      _errorKey = result.errorKey;
       _errorMessage = result.errorMessage;
     }
 
@@ -127,12 +135,14 @@ class AuthProvider extends ChangeNotifier {
     await _authService.logout();
     _user = null;
     _isLoggedIn = false;
+    _errorKey = null;
     _errorMessage = null;
     notifyListeners();
   }
 
   /// 清除錯誤訊息
   void clearError() {
+    _errorKey = null;
     _errorMessage = null;
     notifyListeners();
   }

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
@@ -79,7 +78,7 @@ class AuthService {
           .timeout(_timeout);
 
       if (response.statusCode == 404) {
-        return AuthResult.error('找不到註冊 API，請確認 API_BASE_URL 是否包含 /api');
+        return AuthResult.error(key: 'authEndpointNotFoundRegister');
       }
 
       final data = _tryDecodeMap(response.body);
@@ -88,7 +87,7 @@ class AuthService {
         final access = (data?['accessToken'] as String?)?.trim() ?? '';
         final refresh = (data?['refreshToken'] as String?)?.trim() ?? '';
         if (access.isEmpty || refresh.isEmpty) {
-          return AuthResult.error('註冊成功但 Token 回傳格式不正確');
+          return AuthResult.error(key: 'authBadTokenResponse');
         }
         await _saveTokens(
           access,
@@ -99,13 +98,12 @@ class AuthService {
           await _saveUser(user);
           return AuthResult.success(user);
         }
-        return AuthResult.error('註冊成功但回傳格式不正確');
+        return AuthResult.error(key: 'authBadUserResponse');
       }
 
-      return AuthResult.error(_extractErrorMessage(data) ?? '註冊失敗');
+      return _errorFromServer(data, fallbackKey: 'authRegisterFailed');
     } catch (e) {
-      final detail = kDebugMode ? '：${e.toString()}' : '';
-      return AuthResult.error('無法連接到伺服器$detail');
+      return AuthResult.error(key: 'networkError');
     }
   }
 
@@ -124,7 +122,7 @@ class AuthService {
           .timeout(_timeout);
 
       if (response.statusCode == 404) {
-        return AuthResult.error('找不到登入 API，請確認 API_BASE_URL 是否包含 /api');
+        return AuthResult.error(key: 'authEndpointNotFoundLogin');
       }
 
       final data = _tryDecodeMap(response.body);
@@ -133,7 +131,7 @@ class AuthService {
         final access = (data?['accessToken'] as String?)?.trim() ?? '';
         final refresh = (data?['refreshToken'] as String?)?.trim() ?? '';
         if (access.isEmpty || refresh.isEmpty) {
-          return AuthResult.error('登入成功但 Token 回傳格式不正確');
+          return AuthResult.error(key: 'authBadTokenResponse');
         }
         await _saveTokens(
           access,
@@ -144,13 +142,12 @@ class AuthService {
           await _saveUser(user);
           return AuthResult.success(user);
         }
-        return AuthResult.error('登入成功但回傳格式不正確');
+        return AuthResult.error(key: 'authBadUserResponse');
       }
 
-      return AuthResult.error(_extractErrorMessage(data) ?? '登入失敗');
+      return _errorFromServer(data, fallbackKey: 'authLoginFailed');
     } catch (e) {
-      final detail = kDebugMode ? '：${e.toString()}' : '';
-      return AuthResult.error('無法連接到伺服器$detail');
+      return AuthResult.error(key: 'networkError');
     }
   }
 
@@ -285,13 +282,40 @@ String? _extractErrorMessage(Map<String, dynamic>? data) {
 class AuthResult {
   final bool isSuccess;
   final Map<String, dynamic>? user;
+  final String? errorKey;
   final String? errorMessage;
 
-  AuthResult._({required this.isSuccess, this.user, this.errorMessage});
+  AuthResult._({
+    required this.isSuccess,
+    this.user,
+    this.errorKey,
+    this.errorMessage,
+  });
 
   factory AuthResult.success(Map<String, dynamic> user) =>
       AuthResult._(isSuccess: true, user: user);
 
-  factory AuthResult.error(String message) =>
-      AuthResult._(isSuccess: false, errorMessage: message);
+  factory AuthResult.error({required String key, String? message}) => AuthResult._(
+        isSuccess: false,
+        errorKey: key,
+        errorMessage: message,
+      );
+}
+
+AuthResult _errorFromServer(
+  Map<String, dynamic>? data, {
+  required String fallbackKey,
+}) {
+  final serverMessage = _extractErrorMessage(data);
+  final mappedKey = _mapAuthErrorKey(serverMessage);
+  return AuthResult.error(key: mappedKey ?? fallbackKey);
+}
+
+String? _mapAuthErrorKey(String? serverMessage) {
+  final msg = serverMessage?.trim();
+  if (msg == null || msg.isEmpty) return null;
+  if (msg.contains('請求參數驗證失敗')) return 'authInvalidRequest';
+  if (msg.contains('此 Email 已被註冊')) return 'authEmailExists';
+  if (msg.contains('Email 或密碼不正確')) return 'authInvalidCredentials';
+  return null;
 }
