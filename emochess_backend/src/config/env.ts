@@ -30,6 +30,17 @@ const envSchema = z
                     message: 'CORS_ORIGIN 在 production 必填',
                     path: ['CORS_ORIGIN'],
                 });
+            } else {
+                const origins = val.CORS_ORIGIN.split(',')
+                    .map((o) => o.trim())
+                    .filter(Boolean);
+                if (origins.includes('*')) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'CORS_ORIGIN 不可包含 "*"（搭配 credentials 會造成任意來源存取）',
+                        path: ['CORS_ORIGIN'],
+                    });
+                }
             }
             if (val.JWT_SECRET.trim().length < 32) {
                 ctx.addIssue({
