@@ -192,14 +192,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: AppColors.primaryLight,
                       borderRadius: 40,
                     ),
-                    child: Center(
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/icon/app_icon.png',
-                          width: 54,
-                          height: 54,
-                          fit: BoxFit.cover,
-                        ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/icon/app_icon.png',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),

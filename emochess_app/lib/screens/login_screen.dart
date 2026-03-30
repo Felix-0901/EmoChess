@@ -93,14 +93,12 @@ class _LoginScreenState extends State<LoginScreen>
                             color: AppColors.primaryLight,
                             borderRadius: 60,
                           ),
-                          child: Center(
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/icon/app_icon.png',
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                              ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/icon/app_icon.png',
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
                             ),
                           ),
                         ),
