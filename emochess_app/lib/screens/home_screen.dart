@@ -29,11 +29,12 @@ class HomeScreen extends StatelessWidget {
                   color: AppColors.primaryLight,
                   borderRadius: 80,
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.castle_rounded,
-                    size: 80,
-                    color: AppColors.primary,
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/icon/app_icon.png',
+                    width: 160,
+                    height: 160,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
