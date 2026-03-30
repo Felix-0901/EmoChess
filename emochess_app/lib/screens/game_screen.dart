@@ -28,19 +28,28 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   bool _gameOverDialogShown = false;
   final GameCloudService _cloudService = GameCloudService();
+  late final SettingsProvider _settingsProvider;
+  late final VoidCallback _settingsListener;
 
   @override
   void initState() {
     super.initState();
+    _settingsProvider = context.read<SettingsProvider>();
+    _settingsListener = () {
+      final gameProvider = context.read<GameProvider>();
+      final emotionProvider = context.read<EmotionProvider>();
+      final locale = _settingsProvider.locale;
+      gameProvider.setLanguage(locale);
+      emotionProvider.setLanguage(locale);
+    };
+    _settingsProvider.addListener(_settingsListener);
     // Initialize AI and start a new game when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final gameProvider = context.read<GameProvider>();
       final emotionProvider = context.read<EmotionProvider>();
-      final settingsProvider = context.read<SettingsProvider>();
 
       // Set language for AI responses
-      gameProvider.setLanguage(settingsProvider.locale);
-      emotionProvider.setLanguage(settingsProvider.locale);
+      _settingsListener();
 
       gameProvider.onInteractionGenerated = (interaction) {
         emotionProvider.setInteraction(interaction);
@@ -85,6 +94,7 @@ class _GameScreenState extends State<GameScreen> {
       // Handle AI Connection Errors
       gameProvider.onAiConnectionError = (errorMsg) {
         // Navigate to AI Error Screen using GoRouter
+        if (!mounted) return;
         context.go('/ai-error?msg=${Uri.encodeComponent(errorMsg)}');
       };
 
@@ -104,6 +114,12 @@ class _GameScreenState extends State<GameScreen> {
       gameProvider.startNewGame(initialEmotion: initialEmotion.name);
       gameProvider.setPlayerEmotion(initialEmotion);
     });
+  }
+
+  @override
+  void dispose() {
+    _settingsProvider.removeListener(_settingsListener);
+    super.dispose();
   }
 
   @override
@@ -252,11 +268,18 @@ class _GameScreenState extends State<GameScreen> {
               final gameProvider = context.read<GameProvider>();
               final recordProvider = context.read<GameRecordProvider>();
               final authProvider = context.read<AuthProvider>();
+              final messenger = ScaffoldMessenger.of(context);
+              final gameSyncFailedText = l10n.get('gameSyncFailed');
               gameProvider.endGame(GameResult.abandoned);
               gameProvider.completeCurrentGameRecord(GameResult.abandoned.name);
-              await _uploadCurrentGame(context, gameProvider, authProvider);
+              final ok = await _uploadCurrentGame(gameProvider, authProvider);
               await recordProvider.refresh();
               if (!context.mounted) return;
+              if (!ok) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text(gameSyncFailedText)),
+                );
+              }
               Navigator.pop(context);
               context.go('/');
             },
@@ -288,29 +311,40 @@ class _GameScreenState extends State<GameScreen> {
               ? GameResult.loss
               : GameResult.draw);
     game.endGame(gameResult);
+    final messenger = ScaffoldMessenger.of(context);
+    final gameSyncFailedText = AppLocalizations.of(context).get(
+      'gameSyncFailed',
+    );
     Future(() async {
       try {
         game.completeCurrentGameRecord(gameResult.name);
-        await _uploadCurrentGame(context, game, authProvider);
+        final ok = await _uploadCurrentGame(game, authProvider);
         await recordProvider.refresh();
+        if (!mounted) return;
+        if (!ok) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(gameSyncFailedText)),
+          );
+        }
       } catch (_) {}
     });
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => GameOverDialog(
+      builder: (dialogContext) => GameOverDialog(
         result: result,
         onGoHome: () {
-          Navigator.pop(context);
-          context.go('/');
+          Navigator.pop(dialogContext);
+          if (!mounted) return;
+          this.context.go('/');
         },
         onViewAnalysis: () {
-          Navigator.pop(context);
+          Navigator.pop(dialogContext);
           Future(() async {
-            await _syncBeforeNavigate(context, game, authProvider, recordProvider);
-            if (!context.mounted) return;
-            context.go('/analysis');
+            await _syncBeforeNavigate(game, authProvider, recordProvider);
+            if (!mounted) return;
+            this.context.go('/analysis');
           });
         },
         onPlayAgain: () {
@@ -326,7 +360,6 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _syncBeforeNavigate(
-    BuildContext context,
     GameProvider gameProvider,
     AuthProvider authProvider,
     GameRecordProvider recordProvider,
@@ -351,34 +384,36 @@ class _GameScreenState extends State<GameScreen> {
           ),
     );
     try {
-      await _uploadCurrentGame(context, gameProvider, authProvider);
+      final messenger = ScaffoldMessenger.of(context);
+      final gameSyncFailedText = l10n.get('gameSyncFailed');
+      final ok = await _uploadCurrentGame(gameProvider, authProvider);
       await recordProvider.refresh();
+      if (!mounted) return;
+      if (!ok) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(gameSyncFailedText)),
+        );
+      }
     } finally {
-      if (!context.mounted) return;
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
-  Future<void> _uploadCurrentGame(
-    BuildContext context,
+  Future<bool> _uploadCurrentGame(
     GameProvider gameProvider,
     AuthProvider authProvider,
   ) async {
-    final l10n = AppLocalizations.of(context);
     final record = gameProvider.currentGameRecord;
-    if (record == null) return;
-    if (record.cloudId != null && record.cloudId!.trim().isNotEmpty) return;
+    if (record == null) return true;
+    if (record.cloudId != null && record.cloudId!.trim().isNotEmpty) return true;
 
     final cloudId = await _cloudService.uploadGameRecord(record);
-    if (cloudId == null || cloudId.trim().isEmpty) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.get('gameSyncFailed'))),
-      );
-      return;
-    }
+    if (cloudId == null || cloudId.trim().isEmpty) return false;
 
     record.cloudId = cloudId.trim();
     await authProvider.fetchProfile();
+    return true;
   }
 }
