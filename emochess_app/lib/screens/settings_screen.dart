@@ -185,8 +185,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: Column(
                 children: [
-                  const Text('♟️', style: TextStyle(fontSize: 40)),
-                  const SizedBox(height: 12),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: AppTheme.clayDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: 40,
+                    ),
+                    child: Center(
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/icon/app_icon.png',
+                          width: 54,
+                          height: 54,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
                     l10n.appName,
                     style: Theme.of(context).textTheme.headlineMedium,
