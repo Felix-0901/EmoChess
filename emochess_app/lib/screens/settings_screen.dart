@@ -195,14 +195,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     '${l10n.version} 1.0.0',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.aboutDesc,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -273,9 +265,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 12),
             _TutorialStep(text: l10n.tutorialStep2, icon: Icons.extension),
             const SizedBox(height: 12),
-            _TutorialStep(text: l10n.tutorialStep3, icon: Icons.air),
+            _TutorialStep(text: l10n.tutorialStep3, icon: Icons.smart_toy),
             const SizedBox(height: 12),
-            _TutorialStep(text: l10n.tutorialStep4, icon: Icons.smart_toy),
+            _TutorialStep(text: l10n.tutorialStep4, icon: Icons.bar_chart_rounded),
           ],
         ),
         actions: [

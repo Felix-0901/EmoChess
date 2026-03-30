@@ -74,7 +74,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               borderRadius: 60,
             ),
             child: const Center(
-              child: Text('📊', style: TextStyle(fontSize: 56)),
+              child: Icon(
+                Icons.bar_chart_rounded,
+                size: 56,
+                color: AppColors.primary,
+              ),
             ),
           ),
           const SizedBox(height: 24),

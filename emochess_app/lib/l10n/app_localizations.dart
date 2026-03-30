@@ -131,14 +131,13 @@ class AppLocalizations {
       'reset': 'Reset',
       'saved': 'Saved.',
       'version': 'Version',
-      'aboutDesc': 'Emotion-focused chess learning for ASD children',
       'help': 'Help',
       'tutorial': 'Tutorial',
       'tutorialDesc': 'Learn how to use EmoChess',
       'tutorialStep1': '1. Check in with your emotions before playing',
       'tutorialStep2': '2. Play chess and express how you feel',
-      'tutorialStep3': '3. Use breathing exercises when frustrated',
-      'tutorialStep4': '4. Your AI buddy will support you along the way',
+      'tutorialStep3': '3. Your AI buddy will support you along the way',
+      'tutorialStep4': '4. Review your emotion analysis after the game',
       'gotIt': 'Got it!',
 
       // Profile & Stats
@@ -479,14 +478,13 @@ class AppLocalizations {
       'reset': '重設',
       'saved': '已更新。',
       'version': '版本',
-      'aboutDesc': '專為自閉症兒童設計的情緒導向西洋棋學習',
       'help': '幫助',
       'tutorial': '教學',
       'tutorialDesc': '學習如何使用 EmoChess',
       'tutorialStep1': '1. 下棋前先確認自己的情緒',
       'tutorialStep2': '2. 下棋時表達你的感受',
-      'tutorialStep3': '3. 沮喪時使用呼吸練習',
-      'tutorialStep4': '4. AI 夥伴會一路陪伴你',
+      'tutorialStep3': '3. AI 夥伴會一路陪伴與支持你',
+      'tutorialStep4': '4. 遊戲後回顧你的情緒分析紀錄',
       'gotIt': '我知道了！',
 
       // Profile & Stats
@@ -750,7 +748,6 @@ class AppLocalizations {
   String get soundEffectsDesc => get('soundEffectsDesc');
   String get breathingDuration => get('breathingDuration');
   String get version => get('version');
-  String get aboutDesc => get('aboutDesc');
   String get chessBuddy => get('chessBuddy');
   String get imOkay => get('imOkay');
   String get help => get('help');
