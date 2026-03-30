@@ -7,7 +7,7 @@ Flutter 應用程式，提供西洋棋對弈、情緒記錄、對局分析與互
 - Flutter + Dart
 - Provider 狀態管理
 - GoRouter 導航
-- 本地資料：Hive（一般資料）、flutter_secure_storage（Token）
+- 本地資料：SharedPreferences（少量偏好/使用者快取）、flutter_secure_storage（Token）
 - 網路：http
 
 ## 本地啟動
@@ -38,10 +38,18 @@ flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
 flutter run --dart-define=API_BASE_URL=http://<你的電腦區網IP>:3000/api
 ```
 
-也可以在 App 內「設定」頁（Debug 模式才會顯示）直接修改「後端伺服器」，輸入 `http://<你的電腦區網IP>:3000`（未包含 `/api` 會自動補上）。
+App 不提供「App 內修改後端位址」的設定入口；後端位址只使用編譯/啟動時指定的 `API_BASE_URL`（或平台預設值）。
 
 ## 設定參數
 
 - API_BASE_URL：後端 API base URL（例如 `http://localhost:3000/api`）
  
 AI 金鑰採正式產品作法：放在後端環境變數（例如 Coolify / Secrets），App 端不保存任何 AI 金鑰。
+
+## 產出（Release Build）
+
+- Web：`flutter build web --release` → `build/web/`
+  - 目前依賴 `flutter_secure_storage_web`，因此 Flutter WebAssembly（wasm）模式會出現 dry-run 不相容警示；不影響一般 Web release build。
+- Android APK：`flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk`
+- Android AAB（上架用）：`flutter build appbundle --release` → `build/app/outputs/bundle/release/app-release.aab`
+- iOS（需自行簽章）：`flutter build ios --release --no-codesign`

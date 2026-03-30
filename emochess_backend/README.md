@@ -22,13 +22,20 @@ Node.js + Express + TypeScript 的 API 服務，使用 PostgreSQL 與 Prisma 儲
 production 額外要求：
 
 - CORS_ORIGIN（允許的來源網域，可用逗號分隔）
+- CORS_ORIGIN 不可包含 `*`
 - JWT_SECRET 與 JWT_REFRESH_SECRET 長度至少 32 字元
+- AI_API_KEY（也可改用 OPENAI_API_KEY）
 
 可選：
 
 - PORT（預設 3000）
 - JWT_EXPIRES_IN（預設 15m）
 - JWT_REFRESH_EXPIRES_IN（預設 7d）
+- AI_BASE_URL（預設 `https://api.openai.com`，也可用 OPENAI_BASE_URL）
+- AI_MODEL（預設 `gpt-4o-mini`，也可用 OPENAI_MODEL）
+- AI_TIMEOUT_MS（預設 20000）
+- AI_RATE_LIMIT_WINDOW_MS（預設 60000）
+- AI_RATE_LIMIT_MAX（預設 30）
 
 ## 本地開發（Docker）
 
@@ -87,6 +94,11 @@ curl http://localhost:3000/api/health
 - CORS_ORIGIN
 - JWT_EXPIRES_IN（可選）
 - JWT_REFRESH_EXPIRES_IN（可選）
+- AI_API_KEY
+- AI_BASE_URL（可選）
+- AI_MODEL（可選）
+
+容器啟動時會先執行 `prisma migrate deploy` 再啟動 API；健康檢查端點為 `/api/health`（含 DB 狀態）。
 
 ## 常用指令
 
