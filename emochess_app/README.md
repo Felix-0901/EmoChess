@@ -18,7 +18,7 @@ Flutter 應用程式，提供西洋棋對弈、情緒記錄、對局分析與互
 flutter pub get
 ```
 
-2. 指定後端 API Base URL（必須包含 `/api`）
+2. 指定後端 API Base URL（建議包含 `/api`；若只給網域會自動補成 `/api`）
 
 - Android Emulator：
 
@@ -38,16 +38,18 @@ flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
 flutter run --dart-define=API_BASE_URL=http://<你的電腦區網IP>:3000/api
 ```
 
-App 不提供「App 內修改後端位址」的設定入口；後端位址只使用編譯/啟動時指定的 `API_BASE_URL`（或平台預設值）。
+App 不提供「App 內修改後端位址」的設定入口；後端位址只使用編譯/啟動時指定的 `API_BASE_URL`（或預設值：Release 會指向正式環境）。
 
 ## 設定參數
 
-- API_BASE_URL：後端 API base URL（例如 `http://localhost:3000/api`）
+- API_BASE_URL：後端 API base URL（例如 `http://localhost:3000/api` 或 `https://literaryapi.beioverworked.com/api`）
  
 AI 金鑰採正式產品作法：放在後端環境變數（例如 Coolify / Secrets），App 端不保存任何 AI 金鑰。
 
 ## 產出（Release Build）
 
+- 預設（未指定 `API_BASE_URL` 時）：Release 會使用 `https://literaryapi.beioverworked.com/api`
+- 覆寫正式環境（例如 staging）：`flutter build appbundle --release --dart-define=API_BASE_URL=https://<your-domain>/api`
 - Web：`flutter build web --release` → `build/web/`
   - 目前依賴 `flutter_secure_storage_web`，因此 Flutter WebAssembly（wasm）模式會出現 dry-run 不相容警示；不影響一般 Web release build。
 - Android APK：`flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk`

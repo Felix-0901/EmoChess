@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 class AppConfig {
   static const String _apiBaseUrlEnv = String.fromEnvironment('API_BASE_URL');
+  static const String _prodApiBaseUrl = 'https://literaryapi.beioverworked.com/api';
 
   static Future<void> init() async {
     return;
@@ -11,6 +12,9 @@ class AppConfig {
     final configured = _apiBaseUrlEnv.trim();
     if (configured.isNotEmpty) {
       return _normalizeApiBaseUrl(configured);
+    }
+    if (kReleaseMode) {
+      return _normalizeApiBaseUrl(_prodApiBaseUrl);
     }
     if (kIsWeb) {
       return 'http://localhost:3000/api';
