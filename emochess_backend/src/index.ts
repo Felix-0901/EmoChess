@@ -27,15 +27,15 @@ app.use(
         contentSecurityPolicy: false,
     })
 );
-const corsOrigins = env.CORS_ORIGIN
-    ? env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
-    : undefined;
-app.use(
-    cors({
-        origin: corsOrigins ?? true,
-        credentials: true,
-    })
-);
+const corsOrigins = env.CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean);
+if (corsOrigins && corsOrigins.length > 0) {
+    app.use(
+        cors({
+            origin: corsOrigins,
+            credentials: true,
+        })
+    );
+}
 app.use(express.json({ limit: '10mb' })); // 遊戲記錄可能較大
 app.use(compression());
 

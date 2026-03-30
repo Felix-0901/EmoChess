@@ -11,7 +11,10 @@ const envSchema = z
         JWT_REFRESH_SECRET: z.string().min(1, 'JWT_REFRESH_SECRET 必填'),
         JWT_EXPIRES_IN: z.string().default('15m'),
         JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
-        CORS_ORIGIN: z.string().optional(),
+        CORS_ORIGIN: z.preprocess(
+            (v) => (typeof v === 'string' && v.trim().length === 0 ? undefined : v),
+            z.string().optional()
+        ),
         AI_BASE_URL: z.string().optional(),
         OPENAI_BASE_URL: z.string().optional(),
         AI_API_KEY: z.string().optional(),
@@ -24,16 +27,8 @@ const envSchema = z
     })
     .superRefine((val, ctx) => {
         if (val.NODE_ENV === 'production') {
-            if (!val.CORS_ORIGIN || val.CORS_ORIGIN.trim().length === 0) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'CORS_ORIGIN 在 production 必填',
-                    path: ['CORS_ORIGIN'],
-                });
-            } else {
-                const origins = val.CORS_ORIGIN.split(',')
-                    .map((o) => o.trim())
-                    .filter(Boolean);
+            if (val.CORS_ORIGIN) {
+                const origins = val.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
                 if (origins.includes('*')) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,

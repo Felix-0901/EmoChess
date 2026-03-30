@@ -42,7 +42,7 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      CORS_ORIGIN: ${CORS_ORIGIN}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
       AI_API_KEY: ${AI_API_KEY}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com}
       AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
