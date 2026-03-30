@@ -325,7 +325,7 @@ ${_emotionRoleGuide(context.emotionLevel, language)}
 - 你是黑棋，用「你」稱呼白棋小朋友，用「我」稱呼自己
 - 只提白棋剛走的棋子，不要提格子座標（e4, b3 之類的）
 - 黑棋已經走了但還沒顯示，絕對不要提到黑棋走了什麼
-- 目前語氣：${_intentText(intent, language ?? 'en')}
+ - 目前語氣：${_intentText(intent, language)}
 - 你可以參考「對話紀錄/最近回合」自然接話，但不要像在背資料
 
 回覆格式（嚴格 JSON）：
@@ -360,7 +360,7 @@ How you talk:
 - Friendly teasing is fine ("Nice try!" "You wish!" "I'm not scared!")
 
 Emotion-aware (match the player's current emotion):
-${_emotionRoleGuide(context.emotionLevel, language ?? 'en')}
+${_emotionRoleGuide(context.emotionLevel, language)}
 
 Your messages should sound like how real kids talk during a chess game:
 - "Hey your knight is getting real close to my pawn, you trying to steal it?"
@@ -388,7 +388,7 @@ Important rules:
 - You are Black. Use "you" for the White player, "I" for yourself
 - Only mention the piece White just moved, NO square coordinates (e4, b3, etc.)
 - Black already moved but it's hidden — NEVER mention Black's move
-- Current mood: ${_intentText(intent, language ?? 'en')}
+- Current mood: ${_intentText(intent, language)}
 
 Output MUST be strict JSON:
 - message: what YOU (Black/Blackie) say — must be a question
@@ -933,7 +933,8 @@ Output MUST be strict JSON:
       language: context.language,
     );
     if (hardDuplicate || choices.length != 2) {
-      final bundle = _buildAltBundle(context);
+      final angleKey = _suggestAngleKey(context, intent);
+      final bundle = _buildAltBundleForAngle(context, angleKey);
       message = bundle.message;
       choices = bundle.choices;
     }
