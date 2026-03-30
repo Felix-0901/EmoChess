@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -103,6 +104,40 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
                       _ChatHistoryCard(record: record),
                       const SizedBox(height: 16),
                       _MoveHistoryCard(record: record),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: Container(
+                          decoration: AppTheme.clayDecoration(
+                            color: AppColors.error,
+                            borderRadius: 16,
+                            borderColor: AppColors.dangerBorder,
+                            shadowDarkColor: AppColors.dangerShadowDark,
+                            shadowLightColor: AppColors.dangerShadowLight,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => _onDeleteGame(context, record),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      l10n.get('deleteGame'),
+                                      style:
+                                          Theme.of(context).textTheme.labelLarge,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -150,11 +185,15 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
     );
 
     Map<String, dynamic>? report;
+    String? errorText;
     try {
       report = await _reportService.generateGameReport(
         gameId: gameId,
         language: lang,
       );
+    } on ReportServiceException catch (e) {
+      report = null;
+      errorText = kDebugMode ? e.toString() : e.message;
     } catch (_) {
       report = null;
     }
@@ -164,7 +203,7 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
 
     if (report == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.get('reportFailed'))),
+        SnackBar(content: Text(errorText ?? l10n.get('reportFailed'))),
       );
       return;
     }
@@ -219,35 +258,46 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
                       _ReportSection(
                         title: l10n.get('reportSummaryTitle'),
                         child: Text(
-                          (report?['summary'] as String?)?.trim().isNotEmpty ==
-                                  true
-                              ? (report?['summary'] as String).trim()
-                              : pretty,
+                          (() {
+                            final v =
+                                (report?['analysis_report'] ?? report?['summary'])
+                                    ?.toString()
+                                    .trim();
+                            if (v != null && v.isNotEmpty) return v;
+                            return pretty;
+                          })(),
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                       ),
                       const SizedBox(height: 12),
                       _ReportSection(
                         title: l10n.get('reportEmotionOverviewTitle'),
-                        child: _buildKeyValueList(report?['emotion_overview']),
-                      ),
-                      const SizedBox(height: 12),
-                      _ReportSection(
-                        title: l10n.get('reportHighlightsTitle'),
-                        child: _buildListBlocks(report?['highlights']),
-                      ),
-                      const SizedBox(height: 12),
-                      _ReportSection(
-                        title: l10n.get('reportConversationPatternsTitle'),
-                        child: _buildListBlocks(report?['conversation_patterns']),
+                        child: Text(
+                          (() {
+                            final v = report?['emotion_overview']
+                                ?.toString()
+                                .trim();
+                            if (v != null && v.isNotEmpty) return v;
+                            return '';
+                          })(),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       _ReportSection(
                         title: l10n.get('reportRecommendationsTitle'),
-                        child: _buildListBlocks(report?['recommendations']),
+                        child: Text(
+                          (() {
+                            final v = report?['recommendations']
+                                ?.toString()
+                                .trim();
+                            if (v != null && v.isNotEmpty) return v;
+                            return '';
+                          })(),
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      if (report?['disclaimer'] != null)
+                      if ((report?['disclaimer']?.toString().trim() ?? '')
+                          .isNotEmpty)
                         _ReportSection(
                           title: l10n.get('reportDisclaimerTitle'),
                           child: Text('${report?['disclaimer']}'),
@@ -264,62 +314,64 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
     );
   }
 
-  Widget _buildKeyValueList(dynamic map) {
-    if (map is! Map) return const SizedBox.shrink();
-    final entries = map.entries.toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          entries
-              .map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text('${e.key}: ${e.value}'),
-                ),
-              )
-              .toList(),
-    );
-  }
+  Future<void> _onDeleteGame(BuildContext context, GameRecord record) async {
+    final l10n = AppLocalizations.of(context);
+    final provider = context.read<GameRecordProvider>();
 
-  Widget _buildListBlocks(dynamic list) {
-    if (list is! List) return const SizedBox.shrink();
-    final items =
-        list.whereType<Map>().map((m) => m.cast<String, dynamic>()).toList();
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Column(
-      children:
-          items
-              .map(
-                (item) => Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border, width: 1),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children:
-                        item.entries
-                            .where(
-                              (e) =>
-                                  e.value != null &&
-                                  '${e.value}'.trim().isNotEmpty,
-                            )
-                            .map(
-                              (e) => Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Text('${e.key}: ${e.value}'),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                ),
-              )
-              .toList(),
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(l10n.get('deleteGameConfirmTitle')),
+            content: Text(l10n.get('deleteGameConfirmMessage')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(l10n.get('cancel')),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                child: Text(l10n.get('delete')),
+              ),
+            ],
+          ),
     );
+
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+    );
+
+    final recordKey = provider.recordKey(record);
+    await provider.deleteRecord(recordKey);
+
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+
+    final stillExists = provider.getRecord(recordKey) != null;
+    if (stillExists) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.get('deleteGameFailed'))));
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.get('deleteGameSuccess'))));
+    if (GoRouter.of(context).canPop()) {
+      context.pop();
+      return;
+    }
+    context.go('/analysis');
   }
 }
 
@@ -395,6 +447,8 @@ class _SummaryCard extends StatelessWidget {
     switch (emotion) {
       case 'happy':
         return l10n.happy;
+      case 'anxious':
+        return l10n.anxious;
       case 'frustrated':
         return l10n.frustrated;
       case 'neutral':
@@ -510,11 +564,17 @@ class _EmotionTrendCard extends StatelessWidget {
                           }
                           if (value == 1) {
                             return Text(
-                              l10n.neutral,
+                              l10n.anxious,
                               style: const TextStyle(fontSize: 10),
                             );
                           }
                           if (value == 2) {
+                            return Text(
+                              l10n.neutral,
+                              style: const TextStyle(fontSize: 10),
+                            );
+                          }
+                          if (value == 3) {
                             return Text(
                               l10n.happy,
                               style: const TextStyle(fontSize: 10),
@@ -535,7 +595,7 @@ class _EmotionTrendCard extends StatelessWidget {
                     ),
                   ],
                   minY: 0,
-                  maxY: 2,
+                  maxY: 3,
                 ),
               ),
             ),
@@ -556,12 +616,15 @@ class _EmotionTrendCard extends StatelessWidget {
   int _emotionValue(String emotion) {
     switch (emotion) {
       case 'happy':
+        return 3;
+      case 'neutral':
         return 2;
+      case 'anxious':
+        return 1;
       case 'frustrated':
         return 0;
-      case 'neutral':
       default:
-        return 1;
+        return 2;
     }
   }
 }
@@ -616,11 +679,25 @@ class _EmotionDistributionCard extends StatelessWidget {
                         getTitlesWidget: (value, meta) {
                           switch (value.toInt()) {
                             case 0:
-                              return Text(l10n.frustrated);
+                              return Text(
+                                l10n.frustrated,
+                                style: const TextStyle(fontSize: 10),
+                              );
                             case 1:
-                              return Text(l10n.neutral);
+                              return Text(
+                                l10n.anxious,
+                                style: const TextStyle(fontSize: 10),
+                              );
                             case 2:
-                              return Text(l10n.happy);
+                              return Text(
+                                l10n.neutral,
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            case 3:
+                              return Text(
+                                l10n.happy,
+                                style: const TextStyle(fontSize: 10),
+                              );
                           }
                           return const SizedBox.shrink();
                         },
@@ -643,6 +720,17 @@ class _EmotionDistributionCard extends StatelessWidget {
                       x: 1,
                       barRods: [
                         BarChartRodData(
+                          toY: counts['anxious']!.toDouble(),
+                          color: AppColors.emotionAnxious,
+                          width: 18,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ],
+                    ),
+                    BarChartGroupData(
+                      x: 2,
+                      barRods: [
+                        BarChartRodData(
                           toY: counts['neutral']!.toDouble(),
                           color: AppColors.emotionNeutral,
                           width: 18,
@@ -651,7 +739,7 @@ class _EmotionDistributionCard extends StatelessWidget {
                       ],
                     ),
                     BarChartGroupData(
-                      x: 2,
+                      x: 3,
                       barRods: [
                         BarChartRodData(
                           toY: counts['happy']!.toDouble(),
@@ -671,7 +759,7 @@ class _EmotionDistributionCard extends StatelessWidget {
   }
 
   Map<String, int> _emotionCounts(GameRecord record) {
-    final counts = {'happy': 0, 'neutral': 0, 'frustrated': 0};
+    final counts = {'happy': 0, 'neutral': 0, 'anxious': 0, 'frustrated': 0};
     for (final entry in record.emotionLog) {
       if (counts.containsKey(entry.emotion)) {
         counts[entry.emotion] = counts[entry.emotion]! + 1;
@@ -690,6 +778,7 @@ class _ChatHistoryCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: AppTheme.clayDecoration(
         color: AppColors.surface,
@@ -753,6 +842,7 @@ class _MoveHistoryCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: AppTheme.clayDecoration(
         color: AppColors.surface,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../l10n/app_localizations.dart';
@@ -17,6 +18,10 @@ class AiErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final detail =
+        (errorMessage?.trim().isNotEmpty == true) ? errorMessage!.trim() : null;
+    final bodyText =
+        (kDebugMode && detail != null) ? detail : l10n.get('aiConnectionLostBody');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -54,9 +59,7 @@ class AiErrorScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                (errorMessage?.trim().isNotEmpty == true)
-                    ? errorMessage!.trim()
-                    : l10n.get('aiConnectionLostBody'),
+                bodyText,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,

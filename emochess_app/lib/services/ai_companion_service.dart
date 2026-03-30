@@ -54,6 +54,7 @@ class AiCompanionService {
     required int moveNumber,
     bool isCheck = false,
     bool isCapture = false,
+    List<String>? recentSanMoves,
     String? opponentPreFen,
     String? opponentPostFen,
     String? opponentMoveSan,
@@ -75,6 +76,7 @@ class AiCompanionService {
       preFen: preFen,
       postFen: postFen,
       moveSan: moveSan,
+      recentSanMoves: recentSanMoves ?? const [],
       opponentPreFen: opponentPreFen,
       opponentPostFen: opponentPostFen,
       opponentMoveSan: opponentMoveSan,
@@ -104,7 +106,7 @@ class AiCompanionService {
       _recentAvoidLabels = avoidLabels;
       final intent = intentHint ?? _decideIntent(context);
       final baseMessages = <Map<String, String>>[
-        {'role': 'system', 'content': _getSystemPrompt(language, intent)},
+        {'role': 'system', 'content': _getSystemPrompt(context, intent)},
         ..._buildHistoryMessages(recentMessages, limit: _maxHistoryMessages),
         {
           'role': 'user',
@@ -268,7 +270,8 @@ class AiCompanionService {
     }
   }
 
-  String _getSystemPrompt(String? language, AiInteractionIntent intent) {
+  String _getSystemPrompt(AiTurnContext context, AiInteractionIntent intent) {
+    final language = context.language;
     if (language == 'zh') {
       return '''你是「小黑」，一個正在跟小朋友面對面下棋的同齡好朋友。你下黑棋，他下白棋。
 
@@ -280,29 +283,40 @@ class AiCompanionService {
 
 說話方式：
 - 用口語，像真的在聊天：「欸」「哦」「哈哈」「耶」「嘿」
-- 短句為主，不要寫完整句子，講話要像小朋友
+- 短句為主，像坐在旁邊一起玩的口吻
 - 不要每次都誇「你好棒」「加油」，太假了
 - 提到棋步時用口語（「你剛那步兵」而不是「你剛把兵推到前面」）
 - 可以帶點友善的鬥嘴（「哼我才不怕你」「你想得美」）
 
-你的對話應該像真實下棋時的話，例如：
-- 「欸你剛那步兵是想幹嘛？」
-- 「哈哈你的馬跟我的兵很近耒，是想挑釁我嗎？」
-- 「喔你把象拉出來了，是想射對角嗎？」
-- 「嘿嘿你這步兵讓我有點緊張耒！」
-- 「你吃我那個兵也太快了吧！」
-避免這種干巴巴的問法：
-- ✖ 「你剛動了兵，有什麼想法嗎？」
-- ✖ 「你剛那步兵，是想試試我嗎？」
-- ✖ 「你剛把兵推到前面，有什麼計畫嗎？」
-過於籠統的「你剛動了X，是想Y嗎？」句型會讓對話很無聊。
+情緒對應（你要跟著玩家當下情緒變語氣）：
+${_emotionRoleGuide(context.emotionLevel, language)}
+
+陪伴感的關鍵：
+- 不是「問卷式」盤問，而是像一起玩：先有反應（驚訝/緊張/得意/被逼到），再丟一個自然的問題
+- 偶爾接住對方情緒（緊張/卡住/興奮），但不要一直追問情緒
+- 盡量用具體線索講話（吃子、將軍、守住、卡住、打開通道、節奏變快/變慢），不要一直「你是不是想…」
+
+避免的無聊句型（禁止頻繁出現）：
+- 「你剛那步X是想幹嘛？」
+- 「你動了X，有什麼想法/計畫嗎？」
+- 「你是不是想…」「是想…嗎？」連續出現
+- 太籠統的「你剛動了X」開頭
+
+可以用的問句框架（每回合挑 1 個，輪流用，別重複）：
+- 反應型：『欸等等…你這步X我有被嚇到耶，為什麼這樣走？』
+- 風格型：『你今天走棋很…（兇/穩/皮），你是故意的嗎？』
+- 互嗆型：『喔？你這樣走是在挑釁我？敢不敢再兇一點？』
+- 安全感型：『你是在顧你的（王/后/重要棋子）嗎？還是你在釣我？』
+- 節奏型：『你突然加速耶，現在是想跟我拚速度嗎？』
+- 小故事型：『我感覺你在偷做一個小計畫欸，講一下？』
+- 共同感型：『我跟你一起看這局喔，你這步讓我想到什麼，你覺得呢？』
 
 每回合你要做的事：
 1) 說一句話（一定是問句，要有「？」）
 2) 給 2 個選項讓他回答（選項要短，2-8 字）
 3) 每個選項附上你接下來會說的話
 
-聊天角度（每回合必選 1 個，避免重複最近用過的）：
+聊天角度（可以選 1 個當這回合的聊天方向，盡量不要一直重複）：
 - dominance（我有點得意）、pressure（我被你逼到）、test（你在試我嗎）、challenge（約戰/挑釁）
 - bait（你在釣魚？）、trade（換子/交換）、defend（守住/撐住）、block（卡住/擋路）
 - tempo（節奏/搶拍）、style（你的風格）、sneak（偷襲/陰招）、surprise（嚇到）、risk（冒險）、trap（陷阱）、plan（你在想什麼計畫）
@@ -312,12 +326,13 @@ class AiCompanionService {
 - 只提白棋剛走的棋子，不要提格子座標（e4, b3 之類的）
 - 黑棋已經走了但還沒顯示，絕對不要提到黑棋走了什麼
 - 目前語氣：${_intentText(intent, language ?? 'en')}
+- 你可以參考「對話紀錄/最近回合」自然接話，但不要像在背資料
 
 回覆格式（嚴格 JSON）：
 - message：你（小黑/黑方）說的話，一定是問句
 - label：小朋友（白方）回你的話
 - response：你接著說的話（不是問句，是陳述句或感嘆句）
-- meta：可選，放你這回合用的 angleKey/intent/promptVersion
+- meta：可選，放你這回合的意圖/版本（或角度）
 {
   "message": "你說的話（問句）",
   "meta": { "angleKey": "style", "intent": "chat", "promptVersion": $_promptVersion },
@@ -344,6 +359,9 @@ How you talk:
 - Mention chess moves casually ("that pawn move" not "you advanced your pawn")
 - Friendly teasing is fine ("Nice try!" "You wish!" "I'm not scared!")
 
+Emotion-aware (match the player's current emotion):
+${_emotionRoleGuide(context.emotionLevel, language ?? 'en')}
+
 Your messages should sound like how real kids talk during a chess game:
 - "Hey your knight is getting real close to my pawn, you trying to steal it?"
 - "Haha that bishop came out of nowhere! Are you hunting me?"
@@ -360,7 +378,7 @@ Each turn you must:
 2) Give exactly 2 reply options (short, 2-6 words each)
 3) Each option has your follow-up response
 
-Chat angles (pick EXACTLY 1 each turn; avoid repeating recently used angles):
+Chat angles (pick one vibe for the turn; try not to repeat too often):
 - dominance, pressure, test, challenge
 - bait, trade, defend, block
 - tempo, style, sneak, surprise
@@ -409,6 +427,7 @@ Output MUST be strict JSON:
     buffer.writeln('Player emotion: $emotion');
     buffer.writeln('Game phase: $phase');
     buffer.writeln('Intent: ${_intentText(intent, context.language)}');
+    buffer.writeln('Emotion style guide: ${_emotionStyleGuide(context.emotionLevel, context.language)}');
     if (context.opponentPreFen != null &&
         context.opponentPostFen != null &&
         context.opponentMoveSan != null) {
@@ -467,7 +486,15 @@ Output MUST be strict JSON:
     buffer.writeln(jsonEncode(payload));
 
     if (context.language == 'zh') {
-      buffer.writeln('\n用口語聊天，選項 2-8 字。問句要有「？」。不要提座標。不要說出黑棋的步。');
+      buffer.writeln(
+        '\n用口語聊天，像坐在旁邊一起玩。問句要有「？」。選項 2-8 字。不要提座標。不要說出黑棋的步。',
+      );
+      buffer.writeln(
+        '優先用 payload 內的「最近回合/情緒/局面變化」挑 1 個具體點來說，別只換同一句話。',
+      );
+      buffer.writeln(
+        '避免重複開頭與句型：不要一直「你剛…」「是想…嗎」「想幹嘛」。',
+      );
     } else {
       buffer.writeln(
         '\nBe casual and fun. Options 2-6 words. Question must have "?". No coordinates. Don\'t reveal Black\'s move.',
@@ -486,9 +513,23 @@ Output MUST be strict JSON:
     final start = rounds.length > 10 ? rounds.length - 10 : 0;
     final trimmed = rounds.sublist(start);
     return {
+      'white_move_number': context.moveNumber,
+      'white_move_san': context.moveSan,
+      'white_is_capture': context.isCapture,
+      'white_is_check': context.isCheck,
+      'white_piece_moved_type': context.pieceMovedType,
+      'white_captured_piece_type': context.capturedPieceType,
       'white_pre_fen': context.preFen,
       'white_post_fen': context.postFen,
-      'black_post_fen': context.opponentPostFen,
+      if (context.recentSanMoves.isNotEmpty)
+        'recent_san_moves': context.recentSanMoves,
+      'black_next_pre_fen': context.opponentPreFen,
+      'black_next_post_fen': context.opponentPostFen,
+      'black_next_move_san': context.opponentMoveSan,
+      'black_next_is_capture': context.opponentIsCapture,
+      'black_next_is_check': context.opponentIsCheck,
+      'black_next_piece_moved_type': context.opponentPieceMovedType,
+      'black_next_captured_piece_type': context.opponentCapturedPieceType,
       'emotion': context.emotionLevel.name,
       'intent': intent.name,
       'recent_angle_keys': _recentAngleKeys,
@@ -527,13 +568,13 @@ Output MUST be strict JSON:
     if (context.emotionLevel == EmotionLevel.frustrated ||
         context.emotionLevel == EmotionLevel.anxious) {
       final roll = _random.nextDouble();
-      if (roll < 0.4) return AiInteractionIntent.encourage;
-      if (roll < 0.9) return AiInteractionIntent.chat;
+      if (roll < 0.55) return AiInteractionIntent.encourage;
+      if (roll < 0.98) return AiInteractionIntent.chat;
       return AiInteractionIntent.teach;
     }
     final roll = _random.nextDouble();
-    if (roll < 0.7) return AiInteractionIntent.chat;
-    if (roll < 0.9) return AiInteractionIntent.encourage;
+    if (roll < 0.78) return AiInteractionIntent.chat;
+    if (roll < 0.95) return AiInteractionIntent.encourage;
     return AiInteractionIntent.teach;
   }
 
@@ -717,10 +758,10 @@ Output MUST be strict JSON:
     final isZh = context.language == 'zh';
     final messagePool = isZh
         ? [
-            '欸你剛那步$piece蠻有意思的耶，你在想什麼？',
-            '哦～你動了$piece，是有什麼計劃嗎？',
-            '嘿你那步$piece我有注意到，想跟我聊聊嗎？',
-            '哈你剛走的$piece讓我有點意外，你是故意的嗎？',
+            '欸等等…你這步$piece我有被嚇到耶，你怎麼想到的？',
+            '喔～你把$piece這樣一放，我突然有點緊張耶，你在演哪招？',
+            '嘿你這步$piece很有你欸，是想穩穩來還是要搞事？',
+            '哈哈你那步$piece好皮喔～你是故意想逗我嗎？',
           ]
         : [
             'Hey, that $piece move was interesting! What were you thinking?',
@@ -943,7 +984,11 @@ Output MUST be strict JSON:
       }
     }
     if (sameMessageCount >= 1) return true;
-    if (samePatternCount >= 2) return true;
+    if (language == 'zh') {
+      if (samePatternCount >= 1) return true;
+    } else {
+      if (samePatternCount >= 2) return true;
+    }
 
     if (choices.length == 2) {
       final sigChoice = _choiceSignature(choices);
@@ -1030,9 +1075,10 @@ Output MUST be strict JSON:
     final piece = _pieceNameFriendly(context, context.language);
     if (context.language == 'zh') {
       final pool = [
-        '欸你剛那步$piece，是想試試我嗎？',
-        '哦～你動了$piece，有什麼想法嗎？',
-        '嘿你走的$piece蠻有意思的，是故意的嗎？',
+        '欸你這步$piece有點兇耶…你是在逼我嗎？',
+        '喔？你把$piece這樣搞，我突然不太敢亂走了，你想怎樣啦？',
+        '嘿你這步$piece超有節奏，你是想搶拍是不是？',
+        '哈哈你這步$piece很像在釣我耶…你是不是在挖坑？',
       ];
       return pool[_random.nextInt(pool.length)];
     }
@@ -1314,7 +1360,7 @@ Output MUST be strict JSON:
     return [
       _AltBundle(
         angleKey: 'dominance',
-        message: '你這手$piece有點主導味，是想先搶先手嗎？',
+        message: '你這手$piece有點主導味欸，你在搶節奏喔？',
         choices: [
           _choice('嘿嘿，被你看出來了', '那我可不能退喔。'),
           _choice('沒有啦，我只是試試', '我才不信，你很會。'),
@@ -1322,7 +1368,7 @@ Output MUST be strict JSON:
       ),
       _AltBundle(
         angleKey: 'pressure',
-        message: '剛才你把$piece往前放，是想逼我動起來嗎？',
+        message: '剛才你把$piece往前一丟，我壓力直接來欸…你在催我嗎？',
         choices: [
           _choice('對啊，我想壓你一下', '好啊，那我就迎戰。'),
           _choice('沒有啦，手滑', '手滑也挺有氣勢的。'),
@@ -1330,7 +1376,7 @@ Output MUST be strict JSON:
       ),
       _AltBundle(
         angleKey: 'test',
-        message: '你剛那步$piece像在測我，是不是？',
+        message: '你這步$piece很像在考我耶，對不對？',
         choices: [
           _choice('有點想試你', '那我可要小心了。'),
           _choice('不是啦，剛好想到', '剛好想到也很準。'),
@@ -1338,7 +1384,7 @@ Output MUST be strict JSON:
       ),
       _AltBundle(
         angleKey: 'challenge',
-        message: '你這手$piece是在挑我嗎？',
+        message: '喔？你這步$piece在約我打架喔？',
         choices: [
           _choice('來啊，拚一下', '好啊，我也不客氣囉。'),
           _choice('沒有啦，鬧著玩', '哈哈你很會鬧。'),
@@ -1346,7 +1392,7 @@ Output MUST be strict JSON:
       ),
       _AltBundle(
         angleKey: 'bait',
-        message: '你把$piece放那裡，是想釣我去吃嗎？',
+        message: '你把$piece放那邊…你是不是在釣我啊？',
         choices: [
           _choice('對啊，看看你敢不敢', '我會注意一下。'),
           _choice('不是啦，剛好', '我才不信那麼剛好。'),
@@ -1354,7 +1400,7 @@ Output MUST be strict JSON:
       ),
       _AltBundle(
         angleKey: 'trade',
-        message: '你剛那步$piece，是想跟我換一換嗎？',
+        message: '你這步$piece很像在說「來換子啊」欸？',
         choices: [
           _choice('可以啊，換換看', '好啊，那就來吧。'),
           _choice('沒有啦，只是路過', '路過也很有味道。'),
@@ -1362,27 +1408,27 @@ Output MUST be strict JSON:
       ),
       _AltBundle(
         angleKey: 'defend',
-        message: '你剛那步$piece看起來很穩，是想先守一下嗎？',
+        message: '你這步$piece超穩的欸，你先把家顧好嗎？',
         choices: [_choice('對，我想先穩', '穩一點也很帥。'), _choice('沒有啦，只是感覺', '感覺很準呢。')],
       ),
       _AltBundle(
         angleKey: 'block',
-        message: '你把$piece擺那，是想把路封起來嗎？',
+        message: '你把$piece卡那邊，我路都被你堵住了欸？',
         choices: [_choice('對啊，先堵住', '那我得想別的路了。'), _choice('沒有啦，隨手', '隨手也挺會堵。')],
       ),
       _AltBundle(
         angleKey: 'tempo',
-        message: '你這手$piece有點快，是想先搶步嗎？',
+        message: '你突然走得好快喔，你在搶拍是不是？',
         choices: [_choice('對啊，先走快點', '好啊，我跟上。'), _choice('沒有啦，剛好', '剛好也讓我緊張。')],
       ),
       _AltBundle(
         angleKey: 'style',
-        message: '你剛那步$piece很有風格，是想玩帥一點嗎？',
+        message: '你這步$piece很花欸，今天走帥路線喔？',
         choices: [_choice('嘿嘿，有點想', '那我也要帥一下。'), _choice('沒有啦，剛好', '剛好也很帥啦。')],
       ),
       _AltBundle(
         angleKey: 'sneak',
-        message: '你剛那步$piece，是想偷我一個小空檔嗎？',
+        message: '你這步$piece好像在偷摸摸欸，你想偷一口喔？',
         choices: [
           _choice('被你看出來了', '我可不會白白送你。'),
           _choice('沒有啦，亂走', '亂走也會嚇到我。'),
@@ -1390,7 +1436,7 @@ Output MUST be strict JSON:
       ),
       _AltBundle(
         angleKey: 'surprise',
-        message: '這手$piece有點突然，是想給我驚喜嗎？',
+        message: '欸這步$piece好突然，我真的被你嚇到欸？',
         choices: [
           _choice('對啊，嚇你一下', '被你嚇到一點點。'),
           _choice('沒有啦，剛好想到', '你這種剛好很可怕。'),
@@ -1398,17 +1444,17 @@ Output MUST be strict JSON:
       ),
       _AltBundle(
         angleKey: 'risk',
-        message: '你這手$piece有點冒險，是想賭一把嗎？',
+        message: '你這步$piece有點敢耶…你要賭是不是？',
         choices: [_choice('有點想試試', '好啊，那我也來。'), _choice('沒有啦，隨便', '隨便也很敢。')],
       ),
       _AltBundle(
         angleKey: 'trap',
-        message: '你把$piece放那，是想挖個小坑嗎？',
+        message: '你這步$piece我聞到陷阱味欸…你是不是在挖坑？',
         choices: [_choice('嘿嘿，可能喔', '我會小心點。'), _choice('沒有啦，別想太多', '你越說我越想。')],
       ),
       _AltBundle(
         angleKey: 'plan',
-        message: '你剛把$piece放那，是想先鋪路嗎？',
+        message: '你這步$piece像在鋪路欸，你在醞釀什麼？',
         choices: [
           _choice('對，先鋪一點', '好啊，那我得想下一步。'),
           _choice('沒有啦，想到就走', '想到就走也很帥。'),
@@ -1849,9 +1895,7 @@ Output MUST be strict JSON:
   }) {
     final normalized = <CompanionChoice>[];
     final seen = <String>{};
-    final isTeaching =
-        intent == AiInteractionIntent.teach ||
-        _looksLikeQuestion(message, context.language);
+    final isTeaching = intent == AiInteractionIntent.teach;
     for (final choice in choices) {
       final label = _sanitizeLabel(choice.label ?? '', context.language);
       if (label.isEmpty) continue;
@@ -2101,12 +2145,44 @@ Output MUST be strict JSON:
     if (_labelIsPositive(label, lang)) {
       if (_looksTeachingResponse(trimmed, lang) &&
           intent != AiInteractionIntent.teach) {
-        return _friendlyEncouragement(context);
+        final base = _friendlyEncouragement(context);
+        return _prependLabelEchoIfNeeded(base, label, context);
       }
-      return trimmed.isEmpty ? _friendlyEncouragement(context) : trimmed;
+      final base = trimmed.isEmpty ? _friendlyEncouragement(context) : trimmed;
+      return _prependLabelEchoIfNeeded(base, label, context);
     }
 
-    return _softenResponse(trimmed, context, isTeaching: isTeaching);
+    final softened = _softenResponse(trimmed, context, isTeaching: isTeaching);
+    return _prependLabelEchoIfNeeded(softened, label, context);
+  }
+
+  String _prependLabelEchoIfNeeded(
+    String response,
+    String label,
+    AiTurnContext context,
+  ) {
+    final trimmedLabel = label.trim();
+    final trimmedResponse = response.trim();
+    if (trimmedLabel.isEmpty || trimmedResponse.isEmpty) return trimmedResponse;
+    if (trimmedLabel.length > 10) return trimmedResponse;
+    if (trimmedResponse.contains(trimmedLabel)) return trimmedResponse;
+
+    if (context.language == 'zh') {
+      final prefixPool = [
+        '喔～$trimmedLabel喔，',
+        '原來是$trimmedLabel！',
+        '$trimmedLabel嗎？懂了，',
+      ];
+      final prefix = prefixPool[_random.nextInt(prefixPool.length)];
+      return '$prefix$trimmedResponse';
+    }
+    final prefixPool = [
+      'Oh, $trimmedLabel — ',
+      'Got it: $trimmedLabel. ',
+      '$trimmedLabel, huh? ',
+    ];
+    final prefix = prefixPool[_random.nextInt(prefixPool.length)];
+    return '$prefix$trimmedResponse';
   }
 
   String _lightAnswer(AiTurnContext context) {
@@ -2181,9 +2257,9 @@ Output MUST be strict JSON:
     final lang = context.language;
     final tip = _shortTipFromText(context, seed: context.moveSan);
     if (lang == 'zh') {
-      return '小提醒：$tip。';
+      return '欸我跟你說：$tip。';
     }
-    return 'Quick tip: $tip.';
+    return 'Hey, one thing: $tip.';
   }
 
   String _shortTipFromText(AiTurnContext context, {String? seed}) {
@@ -2260,6 +2336,103 @@ Output MUST be strict JSON:
         lower.contains('center') ||
         lower.contains('space') ||
         lower.contains('develop');
+  }
+
+  String _emotionRoleGuide(EmotionLevel level, String language) {
+    final isZh = language == 'zh';
+    if (isZh) {
+      switch (level) {
+        case EmotionLevel.happy:
+          return '- 開心：可以更像朋友互嗆、友善競爭、一起嗨；可以「挑戰」但不要羞辱\n'
+              '- 問句可以更活潑、更像約戰；選項可以偏「來啊/我就想玩帥/我要更兇」';
+        case EmotionLevel.neutral:
+          return '- 平靜：正常聊天、自然接話；別太煽情也別太像老師\n'
+              '- 問句像坐在旁邊一起看局面；選項偏「說說想法/先穩住/試試看」';
+        case EmotionLevel.anxious:
+          return '- 緊張：放慢節奏、給安全感；少鬥嘴少刺激，不要催促\n'
+              '- 用「我陪你」的語氣，讓選項有「慢慢來/先穩/先保護」';
+        case EmotionLevel.frustrated:
+          return '- 挫折：先接住情緒、肯定努力；不要挑釁、不要說教、不要逼他解釋\n'
+              '- 問句偏「要不要一起把局面理順」；選項偏「先呼吸一下/先走穩一手」';
+      }
+    }
+    switch (level) {
+      case EmotionLevel.happy:
+        return '- Happy: playful friendly rivalry, light teasing, hype it up; never insult\n'
+            '- Questions can feel like a challenge; options can be bold and fun';
+      case EmotionLevel.neutral:
+        return '- Calm: normal chill chat, natural follow-up; avoid therapy-talk\n'
+            '- Keep it grounded in the position and the last move';
+      case EmotionLevel.anxious:
+        return '- Anxious: slow it down, be soothing and reassuring; avoid pressure\n'
+            '- Options should include safe/steady choices';
+      case EmotionLevel.frustrated:
+        return '- Frustrated: validate and encourage; no teasing, no lecturing, no pushing\n'
+            '- Offer gentle choices and small next steps';
+    }
+  }
+
+  String _emotionStyleGuide(EmotionLevel level, String language) {
+    final isZh = language == 'zh';
+    switch (level) {
+      case EmotionLevel.happy:
+        return isZh ? '更像朋友：友善競爭、嗨一點、可以小鬥嘴' : 'playful rivalry, hype, light teasing';
+      case EmotionLevel.neutral:
+        return isZh ? '正常聊天：自然、貼近局面、不用煽情' : 'chill and natural, grounded in the position';
+      case EmotionLevel.anxious:
+        return isZh ? '舒緩陪伴：慢一點、給安全感、別催別逼' : 'soothing, slow, reassuring, low pressure';
+      case EmotionLevel.frustrated:
+        return isZh ? '情緒價值：接住、鼓勵、別挑釁、別說教' : 'validate and encourage, no teasing, no lecturing';
+    }
+  }
+
+  String _suggestAngleKey(AiTurnContext context, AiInteractionIntent intent) {
+    const allowed = [
+      'dominance',
+      'pressure',
+      'test',
+      'challenge',
+      'bait',
+      'trade',
+      'defend',
+      'block',
+      'tempo',
+      'style',
+      'sneak',
+      'surprise',
+      'risk',
+      'trap',
+      'plan',
+    ];
+
+    List<String> candidates;
+    switch (context.emotionLevel) {
+      case EmotionLevel.happy:
+        candidates = ['challenge', 'dominance', 'style', 'surprise', 'tempo', 'bait'];
+        break;
+      case EmotionLevel.neutral:
+        candidates = ['plan', 'style', 'tempo', 'trade', 'test'];
+        break;
+      case EmotionLevel.anxious:
+        candidates = ['defend', 'block', 'plan', 'tempo'];
+        break;
+      case EmotionLevel.frustrated:
+        candidates = ['defend', 'plan', 'trade', 'block'];
+        break;
+    }
+
+    if (intent == AiInteractionIntent.teach) {
+      candidates = ['plan', 'test', 'tempo', ...candidates];
+    } else if (intent == AiInteractionIntent.encourage) {
+      candidates = ['defend', 'plan', ...candidates];
+    }
+
+    final filtered = candidates.where((k) => allowed.contains(k)).toList();
+    final pool = filtered.isNotEmpty ? filtered : allowed.toList();
+    for (final k in pool) {
+      if (!_recentAngleKeys.contains(k)) return k;
+    }
+    return pool[_random.nextInt(pool.length)];
   }
 
   String _emotionText(EmotionLevel level, String language) {

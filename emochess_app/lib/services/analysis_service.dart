@@ -40,6 +40,7 @@ class AnalysisService {
     required bool isCheck,
     required bool isCapture,
     required int moveNumber,
+    List<String>? recentSanMoves,
     String? opponentPreFen,
     String? opponentPostFen,
     String? opponentMoveSan,
@@ -87,6 +88,7 @@ class AnalysisService {
         moveNumber: moveNumber,
         isCheck: isCheck,
         isCapture: isCapture,
+        recentSanMoves: recentSanMoves,
         opponentPreFen: opponentPreFen,
         opponentPostFen: opponentPostFen,
         opponentMoveSan: opponentMoveSan,
@@ -121,13 +123,13 @@ class AnalysisService {
     if (_currentEmotion == EmotionLevel.frustrated ||
         _currentEmotion == EmotionLevel.anxious) {
       final roll = _random.nextDouble();
-      if (roll < 0.4) return AiInteractionIntent.encourage;
-      if (roll < 0.9) return AiInteractionIntent.chat;
+      if (roll < 0.55) return AiInteractionIntent.encourage;
+      if (roll < 0.98) return AiInteractionIntent.chat;
       return AiInteractionIntent.teach;
     }
     final roll = _random.nextDouble();
-    if (roll < 0.7) return AiInteractionIntent.chat;
-    if (roll < 0.9) return AiInteractionIntent.encourage;
+    if (roll < 0.78) return AiInteractionIntent.chat;
+    if (roll < 0.95) return AiInteractionIntent.encourage;
     return AiInteractionIntent.teach;
   }
 

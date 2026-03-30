@@ -13,15 +13,18 @@ class AppTheme {
     Color? color,
     double borderRadius = 20,
     bool isPressed = false,
+    Color? borderColor,
+    Color? shadowDarkColor,
+    Color? shadowLightColor,
   }) {
     return BoxDecoration(
       color: color ?? AppColors.surface,
       borderRadius: BorderRadius.circular(borderRadius),
-      border: Border.all(color: AppColors.border, width: 3),
+      border: Border.all(color: borderColor ?? AppColors.border, width: 3),
       boxShadow: isPressed
           ? [
               BoxShadow(
-                color: AppColors.shadowLight,
+                color: shadowLightColor ?? AppColors.shadowLight,
                 offset: const Offset(2, 2),
                 blurRadius: 4,
               ),
@@ -29,13 +32,13 @@ class AppTheme {
           : [
               // Outer shadow (bottom-right)
               BoxShadow(
-                color: AppColors.shadowDark,
+                color: shadowDarkColor ?? AppColors.shadowDark,
                 offset: const Offset(6, 6),
                 blurRadius: 0,
               ),
               // Inner highlight (top-left)
               BoxShadow(
-                color: AppColors.shadowLight,
+                color: shadowLightColor ?? AppColors.shadowLight,
                 offset: const Offset(-2, -2),
                 blurRadius: 0,
               ),

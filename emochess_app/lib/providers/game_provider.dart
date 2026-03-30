@@ -77,6 +77,14 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final sanMovesAll = _currentGameRecord?.moves
+              .map((m) => m.san.trim())
+              .where((s) => s.isNotEmpty)
+              .toList() ??
+          const <String>[];
+      final startIndex = sanMovesAll.length > 16 ? sanMovesAll.length - 16 : 0;
+      final recentSanMoves = sanMovesAll.sublist(startIndex);
+
       // 1. Trigger Analysis with FULL context per user spec
       final interaction = await _analysisService.analyzeMove(
         preFen: preFen,
@@ -85,6 +93,7 @@ class GameProvider extends ChangeNotifier {
         isCheck: isCheck,
         isCapture: isCapture,
         moveNumber: _moveHistory.length,
+        recentSanMoves: recentSanMoves,
         opponentPreFen: pendingAiMove?.preFen,
         opponentPostFen: pendingAiMove?.postFen,
         opponentMoveSan: pendingAiMove?.san,

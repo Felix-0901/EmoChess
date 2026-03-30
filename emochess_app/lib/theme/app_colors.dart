@@ -47,6 +47,9 @@ class AppColors {
 
   // Error (soft orange, not aggressive red)
   static const Color error = Color(0xFFFB7185); // Soft coral
+  static const Color dangerBorder = Color(0xFFFECACA);
+  static const Color dangerShadowDark = Color(0xFFE11D48);
+  static const Color dangerShadowLight = Color(0xFFFFE4E6);
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(

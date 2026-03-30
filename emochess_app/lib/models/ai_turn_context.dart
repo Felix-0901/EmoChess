@@ -7,6 +7,7 @@ class AiTurnContext {
   final String? opponentPreFen;
   final String? opponentPostFen;
   final String? opponentMoveSan;
+  final List<String> recentSanMoves;
   final int moveNumber;
   final bool isCheck;
   final bool isCapture;
@@ -28,6 +29,7 @@ class AiTurnContext {
     this.opponentPreFen,
     this.opponentPostFen,
     this.opponentMoveSan,
+    this.recentSanMoves = const [],
     required this.moveNumber,
     required this.isCheck,
     required this.isCapture,
@@ -50,6 +52,7 @@ class AiTurnContext {
     if (opponentPreFen != null) 'opponentPreFen': opponentPreFen,
     if (opponentPostFen != null) 'opponentPostFen': opponentPostFen,
     if (opponentMoveSan != null) 'opponentMoveSan': opponentMoveSan,
+    if (recentSanMoves.isNotEmpty) 'recentSanMoves': recentSanMoves,
     'moveNumber': moveNumber,
     'isCheck': isCheck,
     'isCapture': isCapture,

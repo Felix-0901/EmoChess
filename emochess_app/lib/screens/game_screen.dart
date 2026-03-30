@@ -117,28 +117,9 @@ class _GameScreenState extends State<GameScreen> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => _showExitConfirmation(context),
         ),
-        actions: [
-          // Undo button
-          Consumer<GameProvider>(
-            builder: (context, game, _) {
-              return IconButton(
-                icon: const Icon(Icons.undo_rounded),
-                onPressed: game.moveHistory.isNotEmpty
-                    ? () => game.undo()
-                    : null,
-                tooltip: l10n.undoMove,
-              );
-            },
-          ),
-          // Analysis button
-          IconButton(
-            icon: const Icon(Icons.analytics_outlined),
-            onPressed: () => context.push('/analysis'),
-            tooltip: l10n.get('emotionAnalysis'),
-          ),
-        ],
       ),
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             // Chat Area (Replaces Emotion Indicator)

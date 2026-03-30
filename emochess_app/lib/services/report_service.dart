@@ -52,7 +52,14 @@ class ReportService {
       return reportJson;
     }
 
-    if (first.statusCode != 401) return null;
+    final firstError = (firstJson?['error'] as String?)?.trim();
+    final firstDetail = firstJson?['detail'];
+    if (first.statusCode != 401) {
+      if (firstError != null && firstError.isNotEmpty) {
+        throw ReportServiceException(firstError, detail: firstDetail);
+      }
+      return null;
+    }
 
     final refreshed = await _authService.refreshToken();
     if (!refreshed) return null;
@@ -72,10 +79,32 @@ class ReportService {
         .timeout(_timeout);
 
     final secondJson = _tryDecodeMap(second.body);
-    if (second.statusCode != 200) return null;
+    if (second.statusCode != 200) {
+      final secondError = (secondJson?['error'] as String?)?.trim();
+      final secondDetail = secondJson?['detail'];
+      if (secondError != null && secondError.isNotEmpty) {
+        throw ReportServiceException(secondError, detail: secondDetail);
+      }
+      return null;
+    }
     final report = (secondJson?['report'] as Map?)?.cast<String, dynamic>();
     final reportJson = (report?['reportJson'] as Map?)?.cast<String, dynamic>();
     return reportJson;
+  }
+}
+
+class ReportServiceException implements Exception {
+  final String message;
+  final Object? detail;
+  const ReportServiceException(this.message, {this.detail});
+
+  @override
+  String toString() {
+    final d = detail;
+    if (d == null) return message;
+    final s = d.toString().trim();
+    if (s.isEmpty) return message;
+    return '$message\n$s';
   }
 }
 
@@ -91,4 +120,3 @@ Map<String, dynamic>? _tryDecodeMap(String body) {
   } catch (_) {}
   return null;
 }
-

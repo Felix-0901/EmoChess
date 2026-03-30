@@ -12,9 +12,10 @@ class InteractionArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: EdgeInsets.fromLTRB(16, 20, 16, 20 + bottomInset),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: const BorderRadius.only(
