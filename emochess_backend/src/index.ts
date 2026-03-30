@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
@@ -15,6 +16,9 @@ import titleRoutes from './routes/titles';
 
 const app = express();
 app.disable('x-powered-by');
+if (env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 
 // ─── Middleware ──────────────────────────────────────
 
@@ -33,6 +37,7 @@ app.use(
     })
 );
 app.use(express.json({ limit: '10mb' })); // 遊戲記錄可能較大
+app.use(compression());
 
 // ─── Routes ─────────────────────────────────────────
 
@@ -221,7 +226,7 @@ app.use(errorHandler);
 
 // ─── Start Server ───────────────────────────────────
 
-app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, () => {
     console.log(`
   ────────────────────────
   EmoChess Backend API
@@ -234,6 +239,28 @@ app.listen(env.PORT, () => {
   ────────────────────────
   Environment: ${env.NODE_ENV}
   `);
+});
+
+const shutdown = async (signal: string) => {
+    try {
+        console.log(`[shutdown] received ${signal}`);
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+        await prisma.$disconnect();
+        process.exit(0);
+    } catch (err) {
+        console.error('[shutdown] error', err);
+        process.exit(1);
+    }
+};
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[uncaughtException]', err);
+    void shutdown('uncaughtException');
 });
 
 export default app;
