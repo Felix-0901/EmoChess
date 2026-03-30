@@ -12,9 +12,12 @@ const envSchema = z
         JWT_EXPIRES_IN: z.string().default('15m'),
         JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
         CORS_ORIGIN: z.string().optional(),
-        AI_BASE_URL: z.string().default('https://api.openai.com'),
+        AI_BASE_URL: z.string().optional(),
+        OPENAI_BASE_URL: z.string().optional(),
         AI_API_KEY: z.string().optional(),
-        AI_MODEL: z.string().default('gpt-4o-mini'),
+        OPENAI_API_KEY: z.string().optional(),
+        AI_MODEL: z.string().optional(),
+        OPENAI_MODEL: z.string().optional(),
         AI_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
         AI_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
         AI_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),
@@ -42,7 +45,8 @@ const envSchema = z
                     path: ['JWT_REFRESH_SECRET'],
                 });
             }
-            if (!val.AI_API_KEY || val.AI_API_KEY.trim().length === 0) {
+            const key = (val.AI_API_KEY ?? val.OPENAI_API_KEY ?? '').trim();
+            if (key.length === 0) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
                     message: 'AI_API_KEY 在 production 必填',
@@ -61,4 +65,10 @@ if (!parsed.success) {
     throw new Error(`環境變數設定錯誤:\n${issues}`);
 }
 
-export const env = parsed.data;
+const raw = parsed.data;
+export const env = {
+    ...raw,
+    AI_BASE_URL: (raw.AI_BASE_URL ?? raw.OPENAI_BASE_URL ?? 'https://api.openai.com').trim(),
+    AI_API_KEY: ((raw.AI_API_KEY ?? raw.OPENAI_API_KEY ?? '').trim() || undefined) as string | undefined,
+    AI_MODEL: (raw.AI_MODEL ?? raw.OPENAI_MODEL ?? 'gpt-4o-mini').trim(),
+};

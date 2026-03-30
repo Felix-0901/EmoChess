@@ -10,7 +10,7 @@ const chatCompletionsSchema = z.object({
             content: z.string(),
         })
     ),
-    max_tokens: z.coerce.number().int().min(1).max(400).optional(),
+    max_tokens: z.coerce.number().int().min(1).max(1400).optional(),
     temperature: z.coerce.number().min(0).max(2).optional(),
     top_p: z.coerce.number().min(0).max(1).optional(),
     presence_penalty: z.coerce.number().min(-2).max(2).optional(),
@@ -111,4 +111,3 @@ export async function proxyChatCompletions(body: unknown): Promise<{ status: num
         clearTimeout(timeout);
     }
 }
-

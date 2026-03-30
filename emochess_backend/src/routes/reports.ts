@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
+import { env } from '../config/env';
 import { getOrCreateGameReport } from '../services/reportService';
 
 const router = Router();
@@ -22,7 +23,15 @@ router.post('/game/:gameId', async (req: Request, res: Response) => {
             return;
         }
         if (err?.message === 'AI_REPORT_BAD_RESPONSE' || err?.message === 'AI_REPORT_NOT_JSON') {
-            res.status(502).json({ error: 'AI 回應格式不正確' });
+            const debugDetail =
+                env.NODE_ENV === 'production'
+                    ? undefined
+                    : err?.raw
+                      ? String(err.raw).slice(0, 800)
+                      : err?.detail
+                        ? err.detail
+                        : undefined;
+            res.status(502).json({ error: 'AI 回應格式不正確', detail: debugDetail });
             return;
         }
         res.status(500).json({ error: '報告服務錯誤' });
@@ -30,4 +39,3 @@ router.post('/game/:gameId', async (req: Request, res: Response) => {
 });
 
 export default router;
-
