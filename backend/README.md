@@ -16,7 +16,7 @@ Node.js + Express + TypeScript 的 API 服務，使用 PostgreSQL 與 Prisma 儲
 ## 資料夾結構
 
 ```text
-emochess_backend/
+backend/
   prisma/
     schema.prisma
     migrations/

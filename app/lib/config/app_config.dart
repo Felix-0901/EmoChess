@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-
 class AppConfig {
   static const String _apiBaseUrlEnv = String.fromEnvironment('API_BASE_URL');
-  static const String _prodApiBaseUrl = 'https://literaryapi.beioverworked.com/api';
+  static const String _prodApiBaseUrl =
+      'https://emochessapi.beioverworked.com/api';
 
   static Future<void> init() async {
     return;
@@ -13,17 +12,10 @@ class AppConfig {
     if (configured.isNotEmpty) {
       return _normalizeApiBaseUrl(configured);
     }
-    if (kReleaseMode) {
-      return _normalizeApiBaseUrl(_prodApiBaseUrl);
-    }
-    if (kIsWeb) {
-      return 'http://localhost:3000/api';
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3000/api';
-    }
-    return 'http://127.0.0.1:3000/api';
+    return _defaultApiBaseUrl;
   }
+
+  static String get _defaultApiBaseUrl => _normalizeApiBaseUrl(_prodApiBaseUrl);
 
   static String _normalizeApiBaseUrl(String input) {
     final normalized = _normalizeBaseUrl(input);

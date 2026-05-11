@@ -2,7 +2,7 @@
 
 ## 模組簡介
 
-Flutter 應用程式，提供西洋棋對弈、情緒記錄、對局分析與互動式陪伴對話。後端 API 與資料庫由 `emochess_backend` 提供。
+Flutter 應用程式，提供西洋棋對弈、情緒記錄、對局分析與互動式陪伴對話。後端 API 與資料庫由 `backend` 提供。
 
 ## 使用技術
 
@@ -16,7 +16,7 @@ Flutter 應用程式，提供西洋棋對弈、情緒記錄、對局分析與互
 ## 資料夾結構
 
 ```text
-emochess_app/
+app/
   lib/
     config/      # App 設定（API_BASE_URL 等）
     models/      # 資料模型
@@ -59,7 +59,7 @@ flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
 flutter run --dart-define=API_BASE_URL=http://<你的電腦區網IP>:3000/api
 ```
 
-App 不提供「App 內修改後端位址」的設定入口；後端位址只使用編譯/啟動時指定的 `API_BASE_URL`（或預設值：Release 會指向正式環境）。
+App 不提供「App 內修改後端位址」的設定入口；後端位址只使用編譯/啟動時指定的 `API_BASE_URL`（或預設值：所有模式都會指向正式環境，若要連本機請自行覆寫）。
 
 ## 環境變數
 
@@ -68,14 +68,11 @@ App 不提供「App 內修改後端位址」的設定入口；後端位址只使
 以 `--dart-define=API_BASE_URL=...` 注入，例如：
 
 - `http://localhost:3000/api`
-- `https://literaryapi.beioverworked.com/api`
+- `https://emochessapi.beioverworked.com/api`
 
-若未提供 `API_BASE_URL`，App 會依模式自動套用預設值（由 `lib/config/app_config.dart` 決定）：
+若未提供 `API_BASE_URL`，App 會直接使用正式環境預設值（由 `lib/config/app_config.dart` 決定）：
 
-- Release：`https://literaryapi.beioverworked.com/api`
-- Debug（Web）：`http://localhost:3000/api`
-- Debug（Android Emulator）：`http://10.0.2.2:3000/api`
-- Debug（其他平台）：`http://127.0.0.1:3000/api`
+- 所有模式：`https://emochessapi.beioverworked.com/api`
 
 AI 金鑰採後端代呼叫作法：放在後端環境變數（例如部署平台的 Secrets），App 端不保存任何 AI 金鑰。
 
@@ -94,7 +91,7 @@ flutter build ios --release --no-codesign
 
 ## 產出（Release Build）
 
-- 預設（未指定 `API_BASE_URL` 時）：Release 會使用 `https://literaryapi.beioverworked.com/api`
+- 預設（未指定 `API_BASE_URL` 時）：App 會使用 `https://emochessapi.beioverworked.com/api`
 - 覆寫正式環境（例如 staging）：`flutter build appbundle --release --dart-define=API_BASE_URL=https://<your-domain>/api`
 - Web：`flutter build web --release` → `build/web/`
   - 目前依賴 `flutter_secure_storage_web`，因此 Flutter WebAssembly（wasm）模式會出現 dry-run 不相容警示；不影響一般 Web release build。
@@ -106,8 +103,9 @@ flutter build ios --release --no-codesign
 
 ### API 連不上（模擬器 / 實機）
 
-- Android Emulator 請用 `http://10.0.2.2:3000/api`（不是 `localhost`）
-- 實機請用 `http://<你的電腦區網IP>:3000/api`，並確認手機與電腦同網段
+- 若要連正式後端，不必額外設定；未指定 `API_BASE_URL` 時會直接使用 `https://emochessapi.beioverworked.com/api`
+- Android Emulator 要連本機後端時，請用 `http://10.0.2.2:3000/api`（不是 `localhost`）
+- 實機要連本機後端時，請用 `http://<你的電腦區網IP>:3000/api`，並確認手機與電腦同網段
 
 ### 我可以在 App 內改後端位址嗎？
 

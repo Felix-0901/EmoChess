@@ -48,4 +48,4 @@ dist/
 **/*.local.yml
 
 # Local resources (do not version)
-emochess_app/Infinite Chess Handbook Chinese.pdf
+app/Infinite Chess Handbook Chinese.pdf
