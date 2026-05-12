@@ -11,6 +11,7 @@ RUN npm config set registry https://registry.npmjs.org/ \
   && npm ci --no-audit --no-fund
 
 COPY prisma ./prisma
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
 RUN npx prisma generate
 
 COPY tsconfig.json ./
