@@ -68,11 +68,11 @@ App 不提供「App 內修改後端位址」的設定入口；後端位址只使
 以 `--dart-define=API_BASE_URL=...` 注入，例如：
 
 - `http://localhost:3000/api`
-- `https://emochessapi.beioverworked.com/api`
+- `https://<正式後端網域>/api`
 
-若未提供 `API_BASE_URL`，App 會直接使用正式環境預設值（由 `lib/config/app_config.dart` 決定）：
+正式後端網域不要寫死在 repo；release build 必須以 `--dart-define` 注入。若未提供 `API_BASE_URL`，App 會使用不可連線的 placeholder（由 `lib/config/app_config.dart` 決定），避免誤把正式 API 網域提交到版本庫。
 
-- 所有模式：`https://emochessapi.beioverworked.com/api`
+- fallback placeholder：`https://api.example.invalid/api`
 
 AI 金鑰採後端代呼叫作法：放在後端環境變數（例如部署平台的 Secrets），App 端不保存任何 AI 金鑰。
 
@@ -91,8 +91,8 @@ flutter build ios --release --no-codesign
 
 ## 產出（Release Build）
 
-- 預設（未指定 `API_BASE_URL` 時）：App 會使用 `https://emochessapi.beioverworked.com/api`
-- 覆寫正式環境（例如 staging）：`flutter build appbundle --release --dart-define=API_BASE_URL=https://<your-domain>/api`
+- 正式上架：`flutter build appbundle --release --dart-define=API_BASE_URL=https://<正式後端網域>/api`
+- 覆寫正式環境（例如 staging）：`flutter build appbundle --release --dart-define=API_BASE_URL=https://<staging-domain>/api`
 - Web：`flutter build web --release` → `build/web/`
   - 目前依賴 `flutter_secure_storage_web`，因此 Flutter WebAssembly（wasm）模式會出現 dry-run 不相容警示；不影響一般 Web release build。
 - Android APK：`flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk`
@@ -103,7 +103,7 @@ flutter build ios --release --no-codesign
 
 ### API 連不上（模擬器 / 實機）
 
-- 若要連正式後端，不必額外設定；未指定 `API_BASE_URL` 時會直接使用 `https://emochessapi.beioverworked.com/api`
+- 若要連正式後端，release build 必須加上 `--dart-define=API_BASE_URL=https://<正式後端網域>/api`
 - Android Emulator 要連本機後端時，請用 `http://10.0.2.2:3000/api`（不是 `localhost`）
 - 實機要連本機後端時，請用 `http://<你的電腦區網IP>:3000/api`，並確認手機與電腦同網段
 

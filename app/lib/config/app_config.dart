@@ -1,7 +1,6 @@
 class AppConfig {
   static const String _apiBaseUrlEnv = String.fromEnvironment('API_BASE_URL');
-  static const String _prodApiBaseUrl =
-      'https://emochessapi.beioverworked.com/api';
+  static const String _fallbackApiBaseUrl = 'https://api.example.invalid/api';
 
   static Future<void> init() async {
     return;
@@ -15,7 +14,8 @@ class AppConfig {
     return _defaultApiBaseUrl;
   }
 
-  static String get _defaultApiBaseUrl => _normalizeApiBaseUrl(_prodApiBaseUrl);
+  static String get _defaultApiBaseUrl =>
+      _normalizeApiBaseUrl(_fallbackApiBaseUrl);
 
   static String _normalizeApiBaseUrl(String input) {
     final normalized = _normalizeBaseUrl(input);
