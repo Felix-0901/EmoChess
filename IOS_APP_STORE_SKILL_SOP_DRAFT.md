@@ -376,6 +376,15 @@
     - fastlane 建議在 `Info.plist` 設定 `ITSAppUsesNonExemptEncryption=false` 以減少 export compliance 等待；本專案已加入此 key，與 lane 中的 `uses_non_exempt_encryption: false` 一致。
 - 使用者已提供 App Review Contact。資料已寫入本機 ignored 的 `app/.env.appstore.local`，不寫入 Git、不寫入 SOP 明文。
 - 已重新執行 `fastlane ios metadata`，App Review Contact 已成功推送到 App Store Connect。
+- 已透過 Codex 內建瀏覽器完成並發佈 App Privacy：
+  - 先判斷本專案有資料收集，因為 App 會透過後端處理帳號登入、雲端棋局紀錄、情緒紀錄、AI 聊天與報告。
+  - Privacy Policy URL：`https://emochess.beioverworked.com/privacy`
+  - 選取 7 種資料類型：`電子郵件地址`、`遊戲內容`、`其他使用者內容`、`使用者識別碼`、`產品互動`、`其他使用狀況資料`、`其他診斷資料`。
+  - `電子郵件地址`、`使用者識別碼`、`其他診斷資料` 用途設為 `App 功能`。
+  - `遊戲內容`、`其他使用者內容`、`產品互動`、`其他使用狀況資料` 用途設為 `App 功能` 與 `產品個人化`。
+  - 所有已選資料類型皆設為 `會與使用者身分連結`。
+  - 所有已選資料類型皆設為 `不會用於追蹤用途`。
+  - 頁面顯示已由登入帳戶於數秒鐘前發佈。
 - Bundle ID 變更後已重新驗證：
   - `flutter analyze` 成功。
   - `flutter test` 成功。
@@ -390,6 +399,7 @@
 - 正式後端 API URL：`https://emochess.beioverworked.com/api`
 - Privacy Policy URL：`https://emochess.beioverworked.com/privacy`
 - Support URL：`https://emochess.beioverworked.com/support`
+- App Privacy：已完成並發佈；未來 Skill 需先掃描專案資料流，再產生建議填答並讓使用者確認高風險資料分類。
 - 是否需要建立審核用 demo account？
 - App Review Contact：已由使用者提供並推送完成；未來 Skill 仍需在啟動時向使用者確認或要求填寫。
 - 截圖由使用者手動上傳，還是由 Skill 產生 / 上傳？
