@@ -138,7 +138,7 @@ platform :ios do
     prepare_required_metadata_urls
     prepare_review_information
 
-    deliver(
+    deliver_options = {
       api_key: connect_api_key,
       metadata_path: "./fastlane/metadata",
       screenshots_path: "./fastlane/screenshots",
@@ -147,6 +147,13 @@ platform :ios do
       submit_for_review: false,
       force: true,
       run_precheck_before_submit: false
-    )
+    }
+
+    app_version = ENV["APP_STORE_VERSION"]
+    build_number = ENV["APP_STORE_BUILD_NUMBER"]
+    deliver_options[:app_version] = app_version.strip if app_version && !app_version.strip.empty?
+    deliver_options[:build_number] = build_number.strip if build_number && !build_number.strip.empty?
+
+    deliver(**deliver_options)
   end
 end
