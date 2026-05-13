@@ -13,6 +13,7 @@ import 'providers/game_record_provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 import 'screens/emotion_checkin_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/analysis_screen.dart';
@@ -92,19 +93,32 @@ class _EmoChessRouterState extends State<_EmoChessRouter> {
   }
 
   GoRouter _buildRouter() {
-    return GoRouter(
-      initialLocation: '/login',
-      redirect: (context, state) {
-        final auth = context.read<AuthProvider>();
-        final isOnLogin = state.matchedLocation == '/login';
+    final auth = context.read<AuthProvider>();
 
-        if (auth.isLoading) return null;
+    return GoRouter(
+      initialLocation: '/splash',
+      refreshListenable: auth,
+      redirect: (context, state) {
+        final location = state.matchedLocation;
+        final isOnLogin = location == '/login';
+        final isOnSplash = location == '/splash';
+
+        if (auth.isLoading) {
+          return isOnSplash ? null : '/splash';
+        }
         if (!auth.isLoggedIn && !isOnLogin) return '/login';
-        if (auth.isLoggedIn && isOnLogin) return '/';
+        if (auth.isLoggedIn && (isOnLogin || isOnSplash)) return '/';
 
         return null;
       },
       routes: [
+        GoRoute(
+          path: '/splash',
+          pageBuilder: (context, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const SplashScreen(),
+          ),
+        ),
         GoRoute(
           path: '/login',
           pageBuilder: (context, state) => _pageWithDefaultTransition(
@@ -219,7 +233,8 @@ Widget _defaultTransition(
   Animation<double> secondaryAnimation,
   Widget child,
 ) {
-  final disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+  final disableAnimations =
+      MediaQuery.maybeOf(context)?.disableAnimations ?? false;
   if (disableAnimations) return child;
 
   final curved = CurvedAnimation(

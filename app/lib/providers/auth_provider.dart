@@ -51,16 +51,28 @@ class AuthProvider extends ChangeNotifier {
   /// 初始化：檢查是否已登入
   Future<void> initialize() async {
     _isLoading = true;
+    _isLoggedIn = false;
+    _user = null;
     notifyListeners();
 
-    final loggedIn = await _authService.isLoggedIn();
-    if (loggedIn) {
-      _user = await _authService.getSavedUser();
-      _isLoggedIn = _user != null;
+    try {
+      await Future.wait<void>([
+        _restoreSavedSession(),
+        Future<void>.delayed(const Duration(milliseconds: 850)),
+      ]);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
+  }
 
-    _isLoading = false;
-    notifyListeners();
+  Future<void> _restoreSavedSession() async {
+    final hasToken = await _authService.isLoggedIn();
+    if (!hasToken) return;
+
+    final savedUser = await _authService.getSavedUser();
+    _user = savedUser ?? await _authService.getProfile();
+    _isLoggedIn = _user != null;
   }
 
   /// 從後台抓取最新個人資料

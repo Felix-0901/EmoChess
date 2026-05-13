@@ -22,9 +22,11 @@ class AuthService {
     String? baseUrl,
     TokenStorage? tokenStorage,
     http.Client? client,
-  })  : _baseUrlOverride = (baseUrl?.trim().isEmpty ?? true) ? null : baseUrl!.trim(),
-        _tokenStorage = tokenStorage ?? SecureTokenStorage(),
-        _client = client ?? http.Client();
+  }) : _baseUrlOverride = (baseUrl?.trim().isEmpty ?? true)
+           ? null
+           : baseUrl!.trim(),
+       _tokenStorage = tokenStorage ?? SecureTokenStorage(),
+       _client = client ?? http.Client();
 
   /// 儲存 Token 和用戶資訊
   Future<void> _saveTokens(String accessToken, String refreshToken) async {
@@ -44,7 +46,12 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('user');
     if (userJson == null) return null;
-    return jsonDecode(userJson) as Map<String, dynamic>;
+    try {
+      final decoded = jsonDecode(userJson);
+      if (decoded is Map) return decoded.cast<String, dynamic>();
+    } catch (_) {}
+    await prefs.remove('user');
+    return null;
   }
 
   /// 取得 Access Token
@@ -67,14 +74,14 @@ class AuthService {
     try {
       final response = await _client
           .post(
-        Uri.parse('$_effectiveBaseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-          'displayName': displayName,
-        }),
-      )
+            Uri.parse('$_effectiveBaseUrl/auth/register'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+              'displayName': displayName,
+            }),
+          )
           .timeout(_timeout);
 
       if (response.statusCode == 404) {
@@ -89,10 +96,7 @@ class AuthService {
         if (access.isEmpty || refresh.isEmpty) {
           return AuthResult.error(key: 'authBadTokenResponse');
         }
-        await _saveTokens(
-          access,
-          refresh,
-        );
+        await _saveTokens(access, refresh);
         final user = (data?['user'] as Map?)?.cast<String, dynamic>();
         if (user != null) {
           await _saveUser(user);
@@ -115,10 +119,10 @@ class AuthService {
     try {
       final response = await _client
           .post(
-        Uri.parse('$_effectiveBaseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      )
+            Uri.parse('$_effectiveBaseUrl/auth/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
           .timeout(_timeout);
 
       if (response.statusCode == 404) {
@@ -133,10 +137,7 @@ class AuthService {
         if (access.isEmpty || refresh.isEmpty) {
           return AuthResult.error(key: 'authBadTokenResponse');
         }
-        await _saveTokens(
-          access,
-          refresh,
-        );
+        await _saveTokens(access, refresh);
         final user = (data?['user'] as Map?)?.cast<String, dynamic>();
         if (user != null) {
           await _saveUser(user);
@@ -169,7 +170,8 @@ class AuthService {
 
       final firstData = _tryDecodeMap(first.body);
       if (first.statusCode == 200) {
-        final profile = (firstData?['profile'] as Map?)?.cast<String, dynamic>();
+        final profile = (firstData?['profile'] as Map?)
+            ?.cast<String, dynamic>();
         if (profile == null) return null;
         await _saveUser(profile);
         return profile;
@@ -295,11 +297,8 @@ class AuthResult {
   factory AuthResult.success(Map<String, dynamic> user) =>
       AuthResult._(isSuccess: true, user: user);
 
-  factory AuthResult.error({required String key, String? message}) => AuthResult._(
-        isSuccess: false,
-        errorKey: key,
-        errorMessage: message,
-      );
+  factory AuthResult.error({required String key, String? message}) =>
+      AuthResult._(isSuccess: false, errorKey: key, errorMessage: message);
 }
 
 AuthResult _errorFromServer(
