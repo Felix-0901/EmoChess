@@ -15,6 +15,8 @@ const envSchema = z
             (v) => (typeof v === 'string' && v.trim().length === 0 ? undefined : v),
             z.string().optional()
         ),
+        GLOBAL_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
+        GLOBAL_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
         AI_BASE_URL: z.string().optional(),
         OPENAI_BASE_URL: z.string().optional(),
         AI_API_KEY: z.string().optional(),

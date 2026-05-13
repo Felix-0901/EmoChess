@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
@@ -36,6 +37,18 @@ if (corsOrigins && corsOrigins.length > 0) {
         })
     );
 }
+app.use(
+    rateLimit({
+        windowMs: env.GLOBAL_RATE_LIMIT_WINDOW_MS,
+        limit: env.GLOBAL_RATE_LIMIT_MAX,
+        standardHeaders: 'draft-8',
+        legacyHeaders: false,
+        skip: (req) => req.path === '/health' || req.path === '/api/health',
+        message: {
+            error: 'Too many requests',
+        },
+    })
+);
 app.use(express.json({ limit: '10mb' })); // 遊戲記錄可能較大
 app.use(compression());
 

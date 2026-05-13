@@ -103,6 +103,8 @@ production 額外驗證：
 - `CORS_ORIGIN`（只有需要讓「瀏覽器」跨網域呼叫 API 時才需要）
 - `JWT_EXPIRES_IN`（預設 `15m`）
 - `JWT_REFRESH_EXPIRES_IN`（預設 `7d`）
+- `GLOBAL_RATE_LIMIT_WINDOW_MS`（預設 `900000`，全站 IP rate limit 時間窗，15 分鐘）
+- `GLOBAL_RATE_LIMIT_MAX`（預設 `300`，每個 IP 在時間窗內最多請求數；健康檢查不計入）
 - `AI_BASE_URL`（預設 `https://api.openai.com`，也可用 `OPENAI_BASE_URL`）
 - `AI_MODEL`（預設 `gpt-4o-mini`，也可用 `OPENAI_MODEL`）
 - `AI_TIMEOUT_MS`（預設 `20000`）
@@ -147,6 +149,8 @@ npm run start
 - CORS_ORIGIN（只有需要讓瀏覽器跨網域呼叫 API 時才需要）
 - JWT_EXPIRES_IN（可選）
 - JWT_REFRESH_EXPIRES_IN（可選）
+- GLOBAL_RATE_LIMIT_WINDOW_MS（可選，預設 `900000`）
+- GLOBAL_RATE_LIMIT_MAX（可選，預設 `300`）
 - AI_API_KEY（或 OPENAI_API_KEY）
 - AI_BASE_URL（可選）
 - AI_MODEL（可選）

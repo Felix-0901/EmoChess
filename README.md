@@ -118,6 +118,7 @@ AI 採「後端代呼叫」模式：AI 金鑰放在後端環境變數，App 不�
 - 部署時需提供的關鍵環境變數：
   - `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD`
   - `JWT_SECRET`、`JWT_REFRESH_SECRET`
+  - `GLOBAL_RATE_LIMIT_WINDOW_MS`、`GLOBAL_RATE_LIMIT_MAX`（可選；預設每 IP 每 15 分鐘 300 次）
   - `CORS_ORIGIN`（只有需要讓瀏覽器跨網域呼叫 API 時才需要；不可包含 `*`）
   - `AI_API_KEY` 或 `OPENAI_API_KEY`（若要啟用 AI 功能）
 - 服務啟動後用健康檢查確認：
