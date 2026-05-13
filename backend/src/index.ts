@@ -14,6 +14,7 @@ import statsRoutes from './routes/stats';
 import aiRoutes from './routes/ai';
 import reportRoutes from './routes/reports';
 import titleRoutes from './routes/titles';
+import publicPages from './routes/publicPages';
 
 const app = express();
 app.disable('x-powered-by');
@@ -78,11 +79,14 @@ app.get('/', (_req, res) => {
         service: 'EmoChess Backend API',
         status: 'ok',
         health: '/api/health',
+        privacy: '/privacy',
+        support: '/support',
     });
 });
 
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
+app.use(publicPages);
 
 const openapi = {
     openapi: '3.0.3',

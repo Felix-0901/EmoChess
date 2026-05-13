@@ -1,0 +1,14 @@
+EmoChess turns chess practice into a calm space for emotional reflection.
+
+Before each game, players check in with how they feel. During play, supportive prompts encourage patience, focus, and self-awareness. After a game, EmoChess helps review moves, chats, and emotion changes so players can notice patterns over time.
+
+Features:
+
+- Play chess with guided emotional check-ins
+- Receive supportive companion prompts while playing
+- Save game records across devices with an account
+- Review game history, move records, and emotion trends
+- Use AI-assisted reports through a secure backend
+- Adjust language, motion, contrast, hints, and sound settings
+
+EmoChess is designed for learning and reflection. It is not a medical, diagnostic, or therapy service.

@@ -1,0 +1,114 @@
+require "shellwords"
+
+default_platform(:ios)
+
+APP_ROOT = File.expand_path("../..", __dir__)
+IOS_ROOT = File.expand_path("..", __dir__)
+
+def required_env!(name)
+  value = ENV[name]
+  UI.user_error!("Missing required environment variable: #{name}") if value.nil? || value.strip.empty?
+  value
+end
+
+def connect_api_key
+  key_content = ENV["APP_STORE_CONNECT_PRIVATE_KEY"]
+  key_filepath = ENV["APP_STORE_CONNECT_KEY_FILEPATH"]
+
+  if (key_content.nil? || key_content.strip.empty?) && (key_filepath.nil? || key_filepath.strip.empty?)
+    UI.user_error!("Set APP_STORE_CONNECT_PRIVATE_KEY or APP_STORE_CONNECT_KEY_FILEPATH")
+  end
+
+  options = {
+    key_id: required_env!("APP_STORE_CONNECT_KEY_ID"),
+    issuer_id: required_env!("APP_STORE_CONNECT_ISSUER_ID"),
+    is_key_content_base64: ENV.fetch("APP_STORE_CONNECT_PRIVATE_KEY_IS_BASE64", "false") == "true"
+  }
+
+  if key_content && !key_content.strip.empty?
+    options[:key_content] = key_content
+  else
+    options[:key_filepath] = File.expand_path(key_filepath)
+  end
+
+  app_store_connect_api_key(**options)
+end
+
+def release_api_base_url
+  url = required_env!("IOS_RELEASE_API_BASE_URL")
+  UI.user_error!("IOS_RELEASE_API_BASE_URL must start with http:// or https://") unless url.match?(%r{\Ahttps?://})
+  UI.important("IOS_RELEASE_API_BASE_URL does not end with /api. Continue only if the app config intentionally handles this.") unless url.end_with?("/api")
+  url
+end
+
+def latest_ipa_path
+  ipa_candidates = Dir[File.join(APP_ROOT, "build/ios/ipa/*.ipa")]
+  UI.user_error!("Cannot find IPA under #{File.join(APP_ROOT, "build/ios/ipa")}") if ipa_candidates.empty?
+  ipa_candidates.max_by { |path| File.mtime(path) }
+end
+
+def metadata_locale_dirs
+  Dir[File.join(IOS_ROOT, "fastlane/metadata/*")].select { |path| File.directory?(path) && File.basename(path) != "review_information" }
+end
+
+def write_metadata_value(filename, value)
+  metadata_locale_dirs.each do |locale_dir|
+    File.write(File.join(locale_dir, filename), "#{value.strip}\n")
+  end
+end
+
+def prepare_required_metadata_urls
+  write_metadata_value("privacy_url.txt", required_env!("APP_PRIVACY_URL"))
+  write_metadata_value("support_url.txt", required_env!("APP_SUPPORT_URL"))
+
+  marketing_url = ENV["APP_MARKETING_URL"]
+  write_metadata_value("marketing_url.txt", marketing_url) if marketing_url && !marketing_url.strip.empty?
+end
+
+platform :ios do
+  desc "Check local release prerequisites without uploading"
+  lane :doctor do
+    sh("cd #{APP_ROOT.shellescape} && flutter --version")
+    sh("cd #{APP_ROOT.shellescape} && flutter doctor -v")
+    sh("cd #{IOS_ROOT.shellescape} && pod --version")
+    sh("cd #{APP_ROOT.shellescape} && bundle exec fastlane --version")
+  end
+
+  desc "Build an App Store IPA with the release API URL"
+  lane :build_ipa do
+    api_url = release_api_base_url.shellescape
+    sh("cd #{APP_ROOT.shellescape} && flutter pub get")
+    sh("cd #{APP_ROOT.shellescape} && flutter build ipa --release --dart-define=API_BASE_URL=#{api_url}")
+    ipa_path = latest_ipa_path
+    UI.success("Using IPA: #{ipa_path}")
+    Actions.lane_context[SharedValues::IPA_OUTPUT_PATH] = ipa_path
+  end
+
+  desc "Build and upload the IPA to TestFlight"
+  lane :beta do
+    api_key = connect_api_key
+    build_ipa
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: latest_ipa_path,
+      changelog: ENV.fetch("TESTFLIGHT_CHANGELOG", "Prepare EmoChess for App Store review."),
+      skip_waiting_for_build_processing: ENV.fetch("SKIP_WAITING_FOR_BUILD_PROCESSING", "false") == "true",
+      uses_non_exempt_encryption: false
+    )
+  end
+
+  desc "Upload App Store metadata draft without submitting for review"
+  lane :metadata do
+    prepare_required_metadata_urls
+
+    deliver(
+      api_key: connect_api_key,
+      metadata_path: "./fastlane/metadata",
+      screenshots_path: "./fastlane/screenshots",
+      skip_binary_upload: true,
+      skip_screenshots: ENV.fetch("UPLOAD_SCREENSHOTS", "false") != "true",
+      submit_for_review: false,
+      force: false
+    )
+  end
+end

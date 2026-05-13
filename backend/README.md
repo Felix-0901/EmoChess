@@ -123,6 +123,8 @@ npm run start
 
 | Method | Path | 說明 | 認證 |
 |--------|------|------|------|
+| GET | `/privacy` | App Store 用隱私權政策頁 | 否 |
+| GET | `/support` | App Store 用支援頁 | 否 |
 | GET | `/api/health` | 健康檢查（含 DB 狀態） | 否 |
 | POST | `/api/auth/register` | 用戶註冊 | 否 |
 | POST | `/api/auth/login` | 用戶登入 | 否 |
@@ -160,6 +162,8 @@ npm run start
 ### 健康檢查 / 文件
 
 - 健康檢查：`GET /api/health`（或 `GET /health`）
+- App Store 隱私權政策：`GET /privacy`
+- App Store 支援頁：`GET /support`
 - 開發文件（非 production 才會啟用）：
   - `GET /openapi.json`
   - `GET /docs`
