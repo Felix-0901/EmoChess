@@ -385,6 +385,23 @@
   - 所有已選資料類型皆設為 `會與使用者身分連結`。
   - 所有已選資料類型皆設為 `不會用於追蹤用途`。
   - 頁面顯示已由登入帳戶於數秒鐘前發佈。
+- 已透過 Codex 內建瀏覽器補齊 App Store Connect 其他可自動處理項目：
+  - App Store 版本頁：版權填入 `© 2026 Beioverworked. All rights reserved.`。
+  - App Store 版本頁：發佈方式改為 `手動發佈此版本`，避免通過審核後自動上架。
+  - App 資訊：類別改為 `遊戲`，子類別為 `桌上遊戲`、`策略遊戲`，次要類別為 `教育`。
+  - App 資訊：內容版權聲明為不包含、顯示或存取第三方內容。
+  - 年齡分級：完成問卷，App Store 顯示 `9+`；醫療或治療資訊為無，健康或保健主題為是。
+  - 受監管醫療器材：聲明此 App 不是任何國家或地區的受監管醫療器材。
+  - App 輔助使用：iPhone / iPad 先標示支援 `不僅以顏色來區分` 與 `足夠對比度`；因 App 尚未正式上架，該頁的發佈按鈕目前不可用。
+  - App Store 版本頁：已選取 build `1.0.0 (1)`，後續因 Launch Screen 修正改選 build `1.0.0 (2)`。
+- 已修正 iOS Launch Screen：
+  - 將 Flutter 預設 1x1 transparent `LaunchImage` 替換為 EmoChess app icon 產生的 1x / 2x / 3x 圖檔。
+  - Launch Screen 背景改為 App 的淡青色背景。
+  - `app/pubspec.yaml` build number 從 `1.0.0+1` bump 為 `1.0.0+2`。
+  - `flutter analyze` 成功。
+  - `flutter test` 成功。
+  - 已執行 `fastlane ios beta`，build `1.0.0 (2)` 成功上傳、processing 完成，並分發給 Internal testers。
+  - 已透過 App Store Connect API 將 App Store version `1.0` 指向 build `1.0.0 (2)`。
 - Bundle ID 變更後已重新驗證：
   - `flutter analyze` 成功。
   - `flutter test` 成功。
@@ -400,6 +417,8 @@
 - Privacy Policy URL：`https://emochess.beioverworked.com/privacy`
 - Support URL：`https://emochess.beioverworked.com/support`
 - App Privacy：已完成並發佈；未來 Skill 需先掃描專案資料流，再產生建議填答並讓使用者確認高風險資料分類。
+- App Store version build：已選取 `1.0.0 (2)`。
+- App Store screenshots：目前仍為 0 張，是送審前主要剩餘項目。
 - 是否需要建立審核用 demo account？
 - App Review Contact：已由使用者提供並推送完成；未來 Skill 仍需在啟動時向使用者確認或要求填寫。
 - 截圖由使用者手動上傳，還是由 Skill 產生 / 上傳？
