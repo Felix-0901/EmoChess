@@ -406,6 +406,18 @@
   - `flutter analyze` 成功。
   - `flutter test` 成功。
   - `backend npm run build` 成功。
+- 已處理並上傳 App Store screenshots：
+  - 使用者提供 5 張 iPhone 截圖，原始尺寸為 `1179 x 2556`。
+  - 轉換為 App Store Connect 可接受的 iPhone 6.5 吋尺寸 `1242 x 2688`，輸出為 8-bit RGB PNG。
+  - 截圖放入 `app/ios/fastlane/screenshots/en-US` 與 `app/ios/fastlane/screenshots/zh-Hant`；目前繁中版本先沿用英文截圖。
+  - 執行 `UPLOAD_SCREENSHOTS=true fastlane ios metadata` 成功上傳 screenshots，不送審。
+  - App Store Connect 頁面重新整理後顯示 `共 5 張截圖（最多 10 張）`。
+- Demo account 注意事項：
+  - `fastlane ios metadata` 會依 `app/.env.appstore.local` 產生本機 ignored 的 `fastlane/metadata/review_information`。
+  - 若 `APP_REVIEW_DEMO_USER` 與 `APP_REVIEW_DEMO_PASSWORD` 留空，重新推 metadata 可能會把 App Store Connect 的「需要登入」狀態覆蓋回未勾選。
+  - 已將 demo account 欄位補回本機 ignored env，並重新推送 App Review Information。
+  - App Store Connect 頁面已確認「需要登入」為已勾選，且 demo account 欄位存在。
+  - 未來 Skill 在執行 metadata lane 前，必須檢查 demo account 欄位；若 App 需要登入且未提供 demo account，應停下詢問使用者，不應以空值覆蓋線上設定。
 
 ## 未解問題
 
@@ -418,8 +430,7 @@
 - Support URL：`https://emochess.beioverworked.com/support`
 - App Privacy：已完成並發佈；未來 Skill 需先掃描專案資料流，再產生建議填答並讓使用者確認高風險資料分類。
 - App Store version build：已選取 `1.0.0 (2)`。
-- App Store screenshots：目前仍為 0 張，是送審前主要剩餘項目。
-- 是否需要建立審核用 demo account？
+- App Store screenshots：iPhone 6.5 吋已上傳 5 張，`en-US` 與 `zh-Hant` 皆已提供。
+- 審核用 demo account：已在 App Store Connect 勾選需要登入並填入；憑證只保存在本機 ignored env，不寫入 Git 或 SOP 明文。
 - App Review Contact：已由使用者提供並推送完成；未來 Skill 仍需在啟動時向使用者確認或要求填寫。
-- 截圖由使用者手動上傳，還是由 Skill 產生 / 上傳？
 - 最終是否只準備到「可按送審」，還是要在確認後由 Skill 點擊 / API 送出審核？
