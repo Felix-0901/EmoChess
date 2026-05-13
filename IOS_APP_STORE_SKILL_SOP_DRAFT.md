@@ -363,7 +363,7 @@
   - `review_information` 不再提交到 Git，避免未來把審核聯絡人電話、Email 或 demo account 放進版本庫。
   - 未提供 `APP_REVIEW_*` 環境變數時，lane 會移除本機 `review_information` 目錄並跳過 review information。
   - 若提供部分 `APP_REVIEW_*`，lane 會直接報錯，要求補齊。
-- 已成功執行 `fastlane ios metadata`，可填的 App Store metadata 已推送完成；審核聯絡資料留待使用者提供。
+- 已成功執行 `fastlane ios metadata`，可填的 App Store metadata 已推送完成。
 - 已成功執行 `fastlane ios beta`：
   - Build：`1.0.0 (1)`
   - IPA：`app/build/ios/ipa/EmoChess.ipa`
@@ -371,9 +371,11 @@
   - 上傳成功，Apple processing 完成。
   - 已設定 TestFlight changelog。
   - 已分發給 Internal testers。
-- Xcode / Flutter build warning：
-  - Launch image 仍是 Flutter 預設 placeholder，正式送審前建議替換。
-  - fastlane 建議在 `Info.plist` 設定 `ITSAppUsesNonExemptEncryption=false` 以減少 export compliance 等待；本專案已加入此 key，與 lane 中的 `uses_non_exempt_encryption: false` 一致。
+  - Xcode / Flutter build warning：
+    - Launch image 仍是 Flutter 預設 placeholder，正式送審前建議替換。
+    - fastlane 建議在 `Info.plist` 設定 `ITSAppUsesNonExemptEncryption=false` 以減少 export compliance 等待；本專案已加入此 key，與 lane 中的 `uses_non_exempt_encryption: false` 一致。
+- 使用者已提供 App Review Contact。資料已寫入本機 ignored 的 `app/.env.appstore.local`，不寫入 Git、不寫入 SOP 明文。
+- 已重新執行 `fastlane ios metadata`，App Review Contact 已成功推送到 App Store Connect。
 - Bundle ID 變更後已重新驗證：
   - `flutter analyze` 成功。
   - `flutter test` 成功。
@@ -389,6 +391,6 @@
 - Privacy Policy URL：`https://emochess.beioverworked.com/privacy`
 - Support URL：`https://emochess.beioverworked.com/support`
 - 是否需要建立審核用 demo account？
-- App Review Contact：需要使用者提供 first name、last name、email、phone（含國碼）。
+- App Review Contact：已由使用者提供並推送完成；未來 Skill 仍需在啟動時向使用者確認或要求填寫。
 - 截圖由使用者手動上傳，還是由 Skill 產生 / 上傳？
 - 最終是否只準備到「可按送審」，還是要在確認後由 Skill 點擊 / API 送出審核？
