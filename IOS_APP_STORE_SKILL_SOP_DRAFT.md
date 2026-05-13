@@ -63,6 +63,8 @@
 
 ### 需要人工或瀏覽器協作的項目
 
+- Skill 開始操作 Apple 後台前，必須先向使用者確認本次要使用哪個 Apple ID / Team / App Store Connect 帳戶。
+  - 若使用者未確認帳戶，不建立 Bundle ID、不建立 App Record、不送審、不發布。
 - Apple Developer / App Store Connect 初次登入、2FA。
 - 首次建立 App Store Connect API Key 與下載 `.p8`。
 - App Store Connect App Record 若 API 不支援建立，改用網頁。
@@ -80,6 +82,7 @@
    - Flutter：存在 `pubspec.yaml`，以 `flutter build ipa` 為主。
    - React Native：存在 `package.json` 且有 `react-native` / Expo 設定，依 Bare RN 或 Expo/EAS 分流。
 3. 取得或要求確認：
+   - 本次要使用的 Apple ID / App Store Connect 帳戶 / Team
    - App 名稱
    - Bundle ID
    - Apple Team ID
@@ -211,7 +214,7 @@
 - App 功能：西洋棋、情緒打卡、對局分析、AI 陪伴對話、帳號登入、雲端棋局紀錄。
 - App localization：目前有英文與繁中手寫 localization。
 - `app/pubspec.yaml` 目前版本：`1.0.0+1`。
-- iOS Bundle ID 目前仍是 `com.example.emochessApp`，正式上架前需改成正式 Bundle ID。
+- iOS Bundle ID 已改為 `com.beioverworked.students.emochess`。
 - iOS Team ID 目前可在 Xcode project 看到 `S3DSU79C4X`，仍需由使用者確認是否為正確上架 team。
 - `Info.plist` 顯示名稱目前是 `Emochess App`，可能需調整為 `EmoChess`。
 - App 正式 build 需要 `--dart-define=API_BASE_URL=https://<正式後端網域>/api`，不能使用 placeholder。
@@ -311,15 +314,81 @@
   - 本機 `GET /support` 回傳 `200 text/html`。
 - 未來 Skill 應內建此檢查：若專案上架前沒有 `/privacy` 與 `/support`，且可識別後端或網站入口，就依專案內容自行建立英文正式頁，再驗證並寫入 App Store metadata URL。
 
+### 2026-05-13 建立 Apple 後台資源
+
+- 已確認本機 `app/.env.appstore.local` 可正常 source，且：
+  - `APP_IDENTIFIER=com.beioverworked.students.emochess`
+  - `APPLE_TEAM_ID=S3DSU79C4X`
+  - `APP_STORE_CONNECT_KEY_ID` 已設定
+  - `APP_STORE_CONNECT_ISSUER_ID` 已設定
+  - `.p8` 檔案存在
+- 已將 iOS project 的 Bundle ID 改為正式值：
+  - Runner：`com.beioverworked.students.emochess`
+  - RunnerTests：`com.beioverworked.students.emochess.RunnerTests`
+- 已將 iOS `Info.plist` 顯示名稱調整為 `EmoChess`。
+- 已透過 App Store Connect API / Spaceship 建立 Apple Developer Bundle ID：
+  - Bundle ID：`com.beioverworked.students.emochess`
+  - Apple resource id：`KCU9TGM94G`
+  - Name：`EmoChess`
+  - Platform：API 回傳 `UNIVERSAL`
+- 已嘗試用 API 建立 App Store Connect App Record：
+  - Name：`EmoChess`
+  - SKU：`com.beioverworked.students.emochess`
+  - Primary locale：`en-US`
+  - Version：`1.0.0`
+  - Platform：`IOS`
+- Apple API 回覆目前此 API Key 對 `apps` resource 不允許 `CREATE`，只允許 `GET_COLLECTION`、`GET_INSTANCE`、`UPDATE`。
+- 結論：此帳號/Key 可用 API 查詢與更新，但 App Store Connect App Record 初建需改用 App Store Connect 網頁完成。未來 Skill 應先嘗試 API；若遇到此權限限制，改用 Codex 內建瀏覽器開到 App Store Connect，等待使用者登入與 2FA 後建立 App Record。
+- 使用者確認本次使用已登入的 App Store Connect 帳戶操作，並要求未來 Skill 啟動時需先確認要使用哪個 Apple ID 帳戶。
+- 已透過 Codex 內建瀏覽器在 App Store Connect 建立 App Record：
+  - 登入帳戶畫面顯示：`旻憲 李 / MIN HSIEN LI`
+  - App name：`EmoChess`
+  - Platform：`iOS`
+  - Primary language：`英文（美國）` / `en-US`
+  - Bundle ID：`EmoChess - com.beioverworked.students.emochess`
+  - SKU：`com.beioverworked.students.emochess`
+  - User access：`完整存取權限`
+  - App Store Connect Apple ID：`6768895600`
+- 已將 `app/.env.appstore.local` 的 `APP_STORE_APPLE_ID` 回寫為 `6768895600`。
+- 已再次用 API 查詢確認：
+  - App：`6768895600` / `EmoChess` / `com.beioverworked.students.emochess` / `en-US`
+  - Bundle ID resource：`KCU9TGM94G` / `com.beioverworked.students.emochess`
+- 已執行 `fastlane ios metadata` 推送 App Store 文字內容：
+  - `en-US` 與 `zh-Hant` localized metadata 已開始上傳。
+  - `privacy_url.txt`、`support_url.txt`、`marketing_url.txt` 已由 env 寫入 metadata 目錄。
+  - 初次遇到 fastlane HTML Preview 在非互動環境要求確認，穩定解法是在 metadata lane 設定 `force: true`。
+  - 後續遇到 App Store Connect API Key precheck 無法檢查 IAP，穩定解法是在 metadata lane 設定 `run_precheck_before_submit: false`。
+  - 最後 Apple 要求 App Review Contact 必填：`contactFirstName`、`contactLastName`、`contactEmail`、`contactPhone`，且電話需使用 `+國碼` 格式。未來 Skill 應在 metadata 推送前先詢問並填入 `review_information`，不能自行猜測電話。
+- 已調整 metadata lane：
+  - `review_information` 不再提交到 Git，避免未來把審核聯絡人電話、Email 或 demo account 放進版本庫。
+  - 未提供 `APP_REVIEW_*` 環境變數時，lane 會移除本機 `review_information` 目錄並跳過 review information。
+  - 若提供部分 `APP_REVIEW_*`，lane 會直接報錯，要求補齊。
+- 已成功執行 `fastlane ios metadata`，可填的 App Store metadata 已推送完成；審核聯絡資料留待使用者提供。
+- 已成功執行 `fastlane ios beta`：
+  - Build：`1.0.0 (1)`
+  - IPA：`app/build/ios/ipa/EmoChess.ipa`
+  - App Store Connect App ID：`6768895600`
+  - 上傳成功，Apple processing 完成。
+  - 已設定 TestFlight changelog。
+  - 已分發給 Internal testers。
+- Xcode / Flutter build warning：
+  - Launch image 仍是 Flutter 預設 placeholder，正式送審前建議替換。
+  - fastlane 建議在 `Info.plist` 設定 `ITSAppUsesNonExemptEncryption=false` 以減少 export compliance 等待；本專案已加入此 key，與 lane 中的 `uses_non_exempt_encryption: false` 一致。
+- Bundle ID 變更後已重新驗證：
+  - `flutter analyze` 成功。
+  - `flutter test` 成功。
+  - `backend npm run build` 成功。
+
 ## 未解問題
 
 - 正式 Bundle ID：`com.beioverworked.students.emochess`
-- App Store Connect App Record 是否已存在？
-- Apple Developer Team / Team ID 是否使用 `S3DSU79C4X`？
-- App Store Connect API Key 是否已建立？
+- App Store Connect App Record 已建立：`6768895600`
+- Apple Developer Team / Team ID：`S3DSU79C4X`
+- App Store Connect API Key 已建立並已可用於查詢 / 更新；不具備 `apps CREATE` 權限。
 - 正式後端 API URL：`https://emochess.beioverworked.com/api`
 - Privacy Policy URL：`https://emochess.beioverworked.com/privacy`
 - Support URL：`https://emochess.beioverworked.com/support`
 - 是否需要建立審核用 demo account？
+- App Review Contact：需要使用者提供 first name、last name、email、phone（含國碼）。
 - 截圖由使用者手動上傳，還是由 Skill 產生 / 上傳？
 - 最終是否只準備到「可按送審」，還是要在確認後由 Skill 點擊 / API 送出審核？

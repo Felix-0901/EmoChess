@@ -36,6 +36,8 @@ coverage/
 **/ios/Flutter/ephemeral/
 **/ios/fastlane/README.md
 **/ios/fastlane/report.xml
+**/ios/fastlane/Preview.html
+**/ios/fastlane/metadata/review_information/*.txt
 **/macos/Flutter/ephemeral/
 **/windows/flutter/ephemeral/
 **/linux/flutter/ephemeral/

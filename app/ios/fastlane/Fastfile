@@ -1,4 +1,5 @@
 require "shellwords"
+require "fileutils"
 
 default_platform(:ios)
 
@@ -65,6 +66,41 @@ def prepare_required_metadata_urls
   write_metadata_value("marketing_url.txt", marketing_url) if marketing_url && !marketing_url.strip.empty?
 end
 
+def prepare_review_information
+  review_dir = File.join(IOS_ROOT, "fastlane/metadata/review_information")
+  contact_values = {
+    "first_name.txt" => ENV["APP_REVIEW_FIRST_NAME"],
+    "last_name.txt" => ENV["APP_REVIEW_LAST_NAME"],
+    "email_address.txt" => ENV["APP_REVIEW_EMAIL"],
+    "phone_number.txt" => ENV["APP_REVIEW_PHONE"]
+  }
+  provided = contact_values.values.compact.map(&:strip).reject(&:empty?)
+
+  if provided.empty?
+    FileUtils.rm_rf(review_dir)
+    UI.important("Skipping App Review contact information because APP_REVIEW_* env vars are not set.")
+    return
+  end
+
+  missing = contact_values.select { |_filename, value| value.nil? || value.strip.empty? }.keys
+  UI.user_error!("Missing App Review contact fields: #{missing.join(", ")}") unless missing.empty?
+  UI.user_error!("APP_REVIEW_PHONE must start with + and country code") unless contact_values["phone_number.txt"].match?(%r{\A\+\d})
+
+  FileUtils.mkdir_p(review_dir)
+  contact_values.each do |filename, value|
+    File.write(File.join(review_dir, filename), "#{value.strip}\n")
+  end
+
+  notes = ENV["APP_REVIEW_NOTES"]
+  notes ||= "EmoChess requires an account to save game records and view analysis. Provide a demo account before submitting for review if public registration is unavailable or if reviewers need a prepared account with sample data."
+  File.write(File.join(review_dir, "notes.txt"), "#{notes.strip}\n")
+
+  demo_user = ENV["APP_REVIEW_DEMO_USER"]
+  demo_password = ENV["APP_REVIEW_DEMO_PASSWORD"]
+  File.write(File.join(review_dir, "demo_user.txt"), "#{demo_user.strip}\n") if demo_user && !demo_user.strip.empty?
+  File.write(File.join(review_dir, "demo_password.txt"), "#{demo_password.strip}\n") if demo_password && !demo_password.strip.empty?
+end
+
 platform :ios do
   desc "Check local release prerequisites without uploading"
   lane :doctor do
@@ -100,6 +136,7 @@ platform :ios do
   desc "Upload App Store metadata draft without submitting for review"
   lane :metadata do
     prepare_required_metadata_urls
+    prepare_review_information
 
     deliver(
       api_key: connect_api_key,
@@ -108,7 +145,8 @@ platform :ios do
       skip_binary_upload: true,
       skip_screenshots: ENV.fetch("UPLOAD_SCREENSHOTS", "false") != "true",
       submit_for_review: false,
-      force: false
+      force: true,
+      run_precheck_before_submit: false
     )
   end
 end

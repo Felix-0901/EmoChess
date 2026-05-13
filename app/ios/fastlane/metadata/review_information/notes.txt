@@ -1,1 +1,0 @@
-EmoChess requires an account to save game records and view analysis. Provide a demo account before submitting for review if public registration is unavailable or if reviewers need a prepared account with sample data.
