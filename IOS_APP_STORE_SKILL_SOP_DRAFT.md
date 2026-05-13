@@ -418,6 +418,23 @@
   - 已將 demo account 欄位補回本機 ignored env，並重新推送 App Review Information。
   - App Store Connect 頁面已確認「需要登入」為已勾選，且 demo account 欄位存在。
   - 未來 Skill 在執行 metadata lane 前，必須檢查 demo account 欄位；若 App 需要登入且未提供 demo account，應停下詢問使用者，不應以空值覆蓋線上設定。
+- 送審前驗證曾提示：
+  - 需要 `13 吋 iPad 顯示器` 截圖。
+  - 需要設定 App 定價。
+- 使用者確認此 App 不支援 iPad，因此正確處理方式不是補 iPad 截圖，而是把 iOS target 改為 iPhone-only：
+  - `TARGETED_DEVICE_FAMILY` 從 `1,2` 改為 `1`。
+  - `app/pubspec.yaml` build number bump 為 `1.0.0+3`，用於上傳新的 iPhone-only build。
+  - 未來 Skill 在送審前若遇到 iPad screenshot 要求，需先詢問 App 是否真的支援 iPad；若不支援，應改 device family 並重新上傳 build，不應硬補不準確的 iPad 截圖。
+- iPhone-only build 與送審前設定：
+  - `flutter analyze` 成功。
+  - `flutter test` 成功。
+  - 已執行 `fastlane ios beta`，build `1.0.0 (3)` 成功上傳、processing 完成，並分發給 Internal testers。
+  - 已驗證 archive 的 `UIDeviceFamily` 只包含 `1`，代表 iPhone-only。
+  - 已透過 App Store Connect API 將 App Store version `1.0` 指向 build `1.0.0 (3)`。
+  - App Store 定價已設定為免費 `$0.00`，適用 175 個國家或地區。
+  - Apple Silicon Mac 與 Apple Vision Pro 供應先關閉，避免未測平台被上架。
+  - 重新按 `新增以供審查` 後，App Store Connect 已建立 `提交項目草稿`，項目顯示 `iOS App 1.0` / `1.0.0 (3)`，並出現 `提交以供審查` 按鈕。
+  - 尚未點擊最後的 `提交以供審查`。
 
 ## 未解問題
 
@@ -429,8 +446,11 @@
 - Privacy Policy URL：`https://emochess.beioverworked.com/privacy`
 - Support URL：`https://emochess.beioverworked.com/support`
 - App Privacy：已完成並發佈；未來 Skill 需先掃描專案資料流，再產生建議填答並讓使用者確認高風險資料分類。
-- App Store version build：已選取 `1.0.0 (2)`。
+- App Store version build：已選取 `1.0.0 (3)`，且為 iPhone-only build。
 - App Store screenshots：iPhone 6.5 吋已上傳 5 張，`en-US` 與 `zh-Hant` 皆已提供。
+- iPad 支援：使用者確認 App 不支援 iPad，已以上傳 iPhone-only build 解決 App Store Connect 的 iPad 截圖要求。
+- App Store 定價：已設定免費 `$0.00`。
 - 審核用 demo account：已在 App Store Connect 勾選需要登入並填入；憑證只保存在本機 ignored env，不寫入 Git 或 SOP 明文。
 - App Review Contact：已由使用者提供並推送完成；未來 Skill 仍需在啟動時向使用者確認或要求填寫。
-- 最終是否只準備到「可按送審」，還是要在確認後由 Skill 點擊 / API 送出審核？
+- 目前狀態：已進入 `提交項目草稿`，可按 `提交以供審查`；尚未正式送出審核。
+- 最終是否由 Skill 點擊 / API 送出審核，需使用者在最後一步明確確認。
