@@ -137,47 +137,65 @@ class _ChessPiece extends StatelessWidget {
   Widget build(BuildContext context) {
     final isWhite = piece.startsWith('w');
     final pieceType = piece.substring(1).toLowerCase();
+    final pieceUnicode = _getPieceUnicode(pieceType, isWhite: isWhite);
+    final tokenColor = isWhite ? Colors.white : const Color(0xFF111827);
+    final outlineColor = isWhite ? const Color(0xFF0F172A) : Colors.white;
 
-    // Using outlined Unicode chess pieces for both players
-    // This creates a consistent, clean look
-    final pieceUnicode = _getPieceUnicode(pieceType);
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Shadow/outline layer for better visibility
-        Text(
-          pieceUnicode,
-          style: TextStyle(
-            fontSize: 32,
-            height: 1,
-            fontFamily: 'serif',
-            foreground: Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.5
-              ..color = isWhite ? Colors.black54 : Colors.white70,
+    return FractionallySizedBox(
+      widthFactor: 0.82,
+      heightFactor: 0.82,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: tokenColor,
+          border: Border.all(color: outlineColor, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              offset: const Offset(1, 2),
+              blurRadius: 3,
+            ),
+          ],
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Text(
+                  pieceUnicode,
+                  style: TextStyle(
+                    fontSize: 36,
+                    height: 1,
+                    fontFamily: 'serif',
+                    foreground: Paint()
+                      ..style = PaintingStyle.stroke
+                      ..strokeWidth = 1.8
+                      ..color = outlineColor,
+                  ),
+                ),
+                Text(
+                  pieceUnicode,
+                  style: TextStyle(
+                    fontSize: 36,
+                    height: 1,
+                    fontFamily: 'serif',
+                    color: tokenColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        // Main piece layer
-        Text(
-          pieceUnicode,
-          style: TextStyle(
-            fontSize: 32,
-            height: 1,
-            fontFamily: 'serif',
-            // White pieces: light fill, Black pieces: dark fill
-            color: isWhite ? Colors.white : const Color(0xFF2D3436),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  // Use the WHITE/outlined unicode symbols for all pieces
-  // ♔♕♖♗♘♙ - these are the outlined versions
-  String _getPieceUnicode(String type) {
+  String _getPieceUnicode(String type, {required bool isWhite}) {
     const vs = '\uFE0E'; // Variation selector for text rendering
-    final pieces = {
+    final whitePieces = {
       'k': '\u2654$vs', // ♔
       'q': '\u2655$vs', // ♕
       'r': '\u2656$vs', // ♖
@@ -185,6 +203,15 @@ class _ChessPiece extends StatelessWidget {
       'n': '\u2658$vs', // ♘
       'p': '\u2659$vs', // ♙
     };
+    final blackPieces = {
+      'k': '\u265A$vs', // ♚
+      'q': '\u265B$vs', // ♛
+      'r': '\u265C$vs', // ♜
+      'b': '\u265D$vs', // ♝
+      'n': '\u265E$vs', // ♞
+      'p': '\u265F$vs', // ♟
+    };
+    final pieces = isWhite ? whitePieces : blackPieces;
     return pieces[type] ?? '?';
   }
 }

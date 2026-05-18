@@ -68,23 +68,24 @@ class _GameScreenState extends State<GameScreen> {
           emotionProvider.isAwaitingResponse || emotionProvider.isResponding;
 
       // Log chat messages to game record
-      emotionProvider.onChatLogged = (
-        ChatSender sender,
-        String message, {
-        String? userChoice,
-        String? aiResponse,
-        String? roundId,
-        AiTurnContext? turnContext,
-      }) {
-        gameProvider.recordChatWithContext(
-          sender: sender == ChatSender.ai ? 'ai' : 'user',
-          message: message,
-          userChoice: userChoice,
-          aiResponse: aiResponse,
-          roundId: roundId,
-          turnContext: turnContext,
-        );
-      };
+      emotionProvider.onChatLogged =
+          (
+            ChatSender sender,
+            String message, {
+            String? userChoice,
+            String? aiResponse,
+            String? roundId,
+            AiTurnContext? turnContext,
+          }) {
+            gameProvider.recordChatWithContext(
+              sender: sender == ChatSender.ai ? 'ai' : 'user',
+              message: message,
+              userChoice: userChoice,
+              aiResponse: aiResponse,
+              roundId: roundId,
+              turnContext: turnContext,
+            );
+          };
 
       // Log emotion changes to game record
       emotionProvider.onEmotionLogged = (level, source) {
@@ -138,8 +139,11 @@ class _GameScreenState extends State<GameScreen> {
         bottom: false,
         child: Column(
           children: [
-            // Chat Area (Replaces Emotion Indicator)
-            Expanded(flex: 3, child: const ChatArea()),
+            // AI companion controls and chat area
+            Consumer<GameProvider>(
+              builder: (context, game, _) =>
+                  _buildCompanionArea(context, game, l10n),
+            ),
 
             // Chess board
             Expanded(
@@ -243,6 +247,85 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  Widget _buildCompanionArea(
+    BuildContext context,
+    GameProvider game,
+    AppLocalizations l10n,
+  ) {
+    final toggle = _buildCompanionToggle(context, game, l10n);
+
+    if (!game.isCompanionEnabled) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: toggle,
+      );
+    }
+
+    return Expanded(
+      flex: 3,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: toggle,
+          ),
+          const Expanded(child: ChatArea()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompanionToggle(
+    BuildContext context,
+    GameProvider game,
+    AppLocalizations l10n,
+  ) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _setCompanionEnabled(context, !game.isCompanionEnabled),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Checkbox(
+                value: game.isCompanionEnabled,
+                activeColor: AppColors.primary,
+                onChanged: (value) =>
+                    _setCompanionEnabled(context, value ?? true),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.get('aiCompanionEnabled'),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _setCompanionEnabled(BuildContext context, bool enabled) {
+    final gameProvider = context.read<GameProvider>();
+    final emotionProvider = context.read<EmotionProvider>();
+    gameProvider.setCompanionEnabled(enabled);
+    if (!enabled) {
+      emotionProvider.clearPendingCompanionInteraction();
+    }
+  }
+
   void _showExitConfirmation(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
@@ -312,9 +395,9 @@ class _GameScreenState extends State<GameScreen> {
               : GameResult.draw);
     game.endGame(gameResult);
     final messenger = ScaffoldMessenger.of(context);
-    final gameSyncFailedText = AppLocalizations.of(context).get(
-      'gameSyncFailed',
-    );
+    final gameSyncFailedText = AppLocalizations.of(
+      context,
+    ).get('gameSyncFailed');
     Future(() async {
       try {
         game.completeCurrentGameRecord(gameResult.name);
@@ -322,9 +405,7 @@ class _GameScreenState extends State<GameScreen> {
         await recordProvider.refresh();
         if (!mounted) return;
         if (!ok) {
-          messenger.showSnackBar(
-            SnackBar(content: Text(gameSyncFailedText)),
-          );
+          messenger.showSnackBar(SnackBar(content: Text(gameSyncFailedText)));
         }
       } catch (_) {}
     });
@@ -368,20 +449,19 @@ class _GameScreenState extends State<GameScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (_) => AlertDialog(
-            content: Row(
-              children: [
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 12),
-                Expanded(child: Text(l10n.get('analyzing'))),
-              ],
+      builder: (_) => AlertDialog(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(l10n.get('analyzing'))),
+          ],
+        ),
+      ),
     );
     try {
       final messenger = ScaffoldMessenger.of(context);
@@ -390,9 +470,7 @@ class _GameScreenState extends State<GameScreen> {
       await recordProvider.refresh();
       if (!mounted) return;
       if (!ok) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(gameSyncFailedText)),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(gameSyncFailedText)));
       }
     } finally {
       if (mounted) {
@@ -407,7 +485,9 @@ class _GameScreenState extends State<GameScreen> {
   ) async {
     final record = gameProvider.currentGameRecord;
     if (record == null) return true;
-    if (record.cloudId != null && record.cloudId!.trim().isNotEmpty) return true;
+    if (record.cloudId != null && record.cloudId!.trim().isNotEmpty) {
+      return true;
+    }
 
     final cloudId = await _cloudService.uploadGameRecord(record);
     if (cloudId == null || cloudId.trim().isEmpty) return false;

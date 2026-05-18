@@ -284,10 +284,9 @@ class EmotionProvider extends ChangeNotifier {
         triggerReason: interaction.triggerReason,
         angleKey: meta['angleKey']?.toString(),
         intent: meta['intent']?.toString(),
-        promptVersion:
-            meta['promptVersion'] is int
-                ? meta['promptVersion'] as int
-                : int.tryParse('${meta['promptVersion']}'),
+        promptVersion: meta['promptVersion'] is int
+            ? meta['promptVersion'] as int
+            : int.tryParse('${meta['promptVersion']}'),
       );
     } else {
       _pendingRound = null;
@@ -308,6 +307,14 @@ class EmotionProvider extends ChangeNotifier {
         onInteractionCompleted?.call();
       });
     }
+  }
+
+  /// Stop any pending companion prompt without changing the game emotion.
+  void clearPendingCompanionInteraction() {
+    _pendingRound = null;
+    _awaitingResponse = false;
+    _isResponding = false;
+    notifyListeners();
   }
 
   /// Reset emotion state (for new game)

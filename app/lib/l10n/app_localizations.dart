@@ -48,13 +48,15 @@ class AppLocalizations {
       'logout': 'Logout',
       'logoutConfirm': 'Are you sure you want to logout?',
       'cancel': 'Cancel',
-      'networkError': 'Unable to connect. Please check your internet and try again.',
+      'networkError':
+          'Unable to connect. Please check your internet and try again.',
       'authEndpointNotFoundLogin':
           'Login endpoint not found. Please confirm the API base URL includes /api.',
       'authEndpointNotFoundRegister':
           'Register endpoint not found. Please confirm the API base URL includes /api.',
       'authBadTokenResponse': 'Signed in, but token response was invalid.',
-      'authBadUserResponse': 'Signed in, but user profile response was invalid.',
+      'authBadUserResponse':
+          'Signed in, but user profile response was invalid.',
       'authLoginFailed': 'Login failed. Please try again.',
       'authRegisterFailed': 'Register failed. Please try again.',
       'authEmailExists': 'This email is already registered.',
@@ -93,6 +95,7 @@ class AppLocalizations {
           'Unable to sync this game to the server. Please check your internet and try again.',
       'stay': 'Stay',
       'leave': 'Leave',
+      'aiCompanionEnabled': 'Play with AI buddy',
 
       // Breathing Screen
       'breathingExerciseTitle': 'Breathing Exercise',
@@ -222,7 +225,8 @@ class AppLocalizations {
       'generateAiReport': 'Generate AI Report',
       'reportGenerating': 'Generating report...',
       'reportFailed': 'Report generation failed.',
-      'reportNeedsUpload': 'This game must be uploaded before generating a report.',
+      'reportNeedsUpload':
+          'This game must be uploaded before generating a report.',
       'reportSummaryTitle': 'Analysis Report',
       'reportEmotionOverviewTitle': 'Emotion Overview',
       'reportHighlightsTitle': 'Key Moments',
@@ -440,6 +444,7 @@ class AppLocalizations {
       'gameSyncFailed': '無法同步棋局到伺服器，請檢查網路後再試。',
       'stay': '留下',
       'leave': '離開',
+      'aiCompanionEnabled': '需要 AI 小夥伴陪伴下棋',
 
       // Breathing Screen
       'breathingExerciseTitle': '呼吸練習',

@@ -38,6 +38,7 @@ class GameProvider extends ChangeNotifier {
   bool Function()? isAwaitingUserResponse;
 
   bool _isAiEnabled = true;
+  bool _isCompanionEnabled = true;
   bool _isAiThinking = false;
   bool _isAnalyzing = false;
   bool _isTerminated = false;
@@ -73,11 +74,17 @@ class GameProvider extends ChangeNotifier {
     String moveSan, // SAN for the move
     _PendingAiMove? pendingAiMove,
   ) async {
+    if (!_isCompanionEnabled) {
+      proceedWithAiMove();
+      return;
+    }
+
     _isAnalyzing = true;
     notifyListeners();
 
     try {
-      final sanMovesAll = _currentGameRecord?.moves
+      final sanMovesAll =
+          _currentGameRecord?.moves
               .map((m) => m.san.trim())
               .where((s) => s.isNotEmpty)
               .toList() ??
@@ -106,6 +113,11 @@ class GameProvider extends ChangeNotifier {
         recentMessages: getConversationContext?.call(),
         recentRounds: getConversationRounds?.call(),
       );
+
+      if (!_isCompanionEnabled) {
+        proceedWithAiMove();
+        return;
+      }
 
       if (interaction != null) {
         onInteractionGenerated?.call(interaction);
@@ -142,6 +154,7 @@ class GameProvider extends ChangeNotifier {
 
   void _tryProceedWithAiMove() {
     if (_isTerminated || !_isAiEnabled || _chess.game_over) return;
+    if (isPlayerTurn) return;
     if (_isAiThinking) return;
     if (_isAnalyzing) {
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -170,6 +183,7 @@ class GameProvider extends ChangeNotifier {
 
   // AI properties
   bool get isAiEnabled => _isAiEnabled;
+  bool get isCompanionEnabled => _isCompanionEnabled;
   bool get isAiThinking => _isAiThinking;
   int get aiDifficulty => _aiDifficulty;
   bool get isPlayerTurn => _chess.turn == chess_lib.Color.WHITE;
@@ -198,6 +212,21 @@ class GameProvider extends ChangeNotifier {
   /// Toggle AI opponent
   void toggleAi(bool enabled) {
     _isAiEnabled = enabled;
+    notifyListeners();
+  }
+
+  /// Toggle AI companion analysis and chat.
+  void setCompanionEnabled(bool enabled) {
+    if (_isCompanionEnabled == enabled) return;
+    _isCompanionEnabled = enabled;
+
+    if (!enabled) {
+      _isAnalyzing = false;
+      if (_isAiEnabled && !isPlayerTurn && !_chess.game_over) {
+        _tryProceedWithAiMove();
+      }
+    }
+
     notifyListeners();
   }
 
@@ -340,7 +369,7 @@ class GameProvider extends ChangeNotifier {
     if (_isAiThinking) return;
     if (_isAnalyzing) return;
     if (_isAiEnabled && !isPlayerTurn) return;
-    if (isAwaitingUserResponse?.call() == true) return;
+    if (_isCompanionEnabled && isAwaitingUserResponse?.call() == true) return;
 
     // If we already have a selection and tapping a legal move, make the move
     if (_selectedSquare != null && _legalMoves.contains(square)) {
@@ -449,7 +478,7 @@ class GameProvider extends ChangeNotifier {
       _legalMoves = [];
       notifyListeners();
 
-      // Trigger Analysis and AI move
+      // Trigger companion analysis and AI move
       if (!_chess.game_over && !isPlayerTurn) {
         _isAiThinking = true;
         notifyListeners();
@@ -457,6 +486,11 @@ class GameProvider extends ChangeNotifier {
         _pendingAiMove = pending;
         _isAiThinking = false;
         notifyListeners();
+
+        if (!_isCompanionEnabled) {
+          proceedWithAiMove();
+          return;
+        }
 
         _analyzeAndProcessAiMove(
           from,
@@ -477,6 +511,7 @@ class GameProvider extends ChangeNotifier {
   Future<void> _makeAiMove() async {
     if (_isTerminated) return;
     if (_isAiThinking || _chess.game_over) return;
+    if (isPlayerTurn) return;
 
     _isAiThinking = true;
     notifyListeners();
