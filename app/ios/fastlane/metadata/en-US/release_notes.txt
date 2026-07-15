@@ -1,1 +1,2 @@
-Initial App Store release.
+Improved chess piece contrast so white and black pieces are easier to distinguish.
+Added an option to play with or without the AI buddy during games.
